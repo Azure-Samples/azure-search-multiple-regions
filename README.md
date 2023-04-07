@@ -1,57 +1,39 @@
-# Project Name
+# Multi-region deployment of Azure Cognitive Search for business continuity
 
-(short, 1-3 sentenced, description of the project)
+The pattern demonstrated in this code sample can help you meet your business continuity and disaster recovery requirements.
 
-## Features
+The sample uses [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep) to deploy the following resources on Azure:
 
-This project framework provides the following features:
++ Two Azure Cognitive Search resources in different geographic regions
++ An Azure Cosmos DB resource and sample database, used for testing failover behaviors
++ Search Traffic manager for request redirection
 
-* Feature 1
-* Feature 2
-* ...
+## Prerequisites
 
-## Getting Started
++ [Azure subscription](https://azure.microsoft.com/free/)
++ [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep)
++ [Azure Cognitive Search](https://learn.microsoft.com/azure/search/search-create-service-portal): two or more, same tier and configuration, in different regions. You can't use the free tier for this scenario.
++ [Azure Cosmos DB](https://learn.microsoft.com/azure/cosmos-db/try-free?tabs=nosql) (any tier, including free)
++ [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/)
 
-### Prerequisites
+## Sample set up
 
-(ideally very short, if any)
+TBD
 
-- OS
-- Library version
-- ...
+## Run the sample
 
-### Installation
+TBD
 
-(ideally very short)
+## Sample clean up
 
-- npm install [package name]
-- mvn install
-- ...
+This sample creates multiple Azure resources, several of which are billable. After completing this exercise, delete any resources you no longer need.
 
-### Quickstart
-(Add steps to get up and running quickly)
+1. Sign in to the Azure portal.
 
-1. git clone [repository clone url]
-2. cd [repository name]
-3. ...
-
-
-## Demo
-
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
+1. To delete all of the resources, find and delete the resource group created by the sample code. All of the resources are contained in one group.
 
 ## Resources
 
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
++ [Azure Cognitive Search documentation](https://learn.microsoft.com/azure/search/)
++ [Samples browser on Microsoft Learn](https://learn.microsoft.com/samples/browse/)
++ [Training](https://learn.microsoft.com/training/)
