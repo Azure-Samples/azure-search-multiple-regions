@@ -1,20 +1,17 @@
 # Multi-region deployment of Azure Cognitive Search for business continuity
 
-The pattern demonstrated in this code sample can help you meet your business continuity and disaster recovery requirements.
+The pattern demonstrated in this code sample can help you meet your business continuity and disaster recovery requirements for Azure Cognitive Search workloads.
 
 The sample uses [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep) to deploy the following resources on Azure:
 
-+ Two Azure Cognitive Search resources in different geographic regions
-+ An Azure Cosmos DB resource and sample database, used for testing failover behaviors
-+ Search Traffic manager for request redirection
++ Two [Azure Cognitive Search](https://learn.microsoft.com/azure/search/search-create-service-portal) resources, same tier and configuration, in different regions. You can't use the free tier for this scenario.
++ [Azure Cosmos DB](https://learn.microsoft.com/azure/cosmos-db/try-free?tabs=nosql) (any tier, including free, in any region). The script creates and loads a sample database used for testing failover behaviors during indexing.
++ [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/) for request redirection.
 
 ## Prerequisites
 
 + [Azure subscription](https://azure.microsoft.com/free/)
-+ [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep)
-+ [Azure Cognitive Search](https://learn.microsoft.com/azure/search/search-create-service-portal): two or more, same tier and configuration, in different regions. You can't use the free tier for this scenario.
-+ [Azure Cosmos DB](https://learn.microsoft.com/azure/cosmos-db/try-free?tabs=nosql) (any tier, including free)
-+ [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/)
++ Permission to create and access resources in Azure
 
 ## Sample set up
 
