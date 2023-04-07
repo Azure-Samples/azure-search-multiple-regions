@@ -67,11 +67,11 @@ resource searchServiceIndexDataReaderRoleDefinition 'Microsoft.Authorization/rol
 var primaryStorageAccountName = '${funcPrefix}1'
 var secondaryStorageAccountName = '${funcPrefix}2'
 
-var primaryHostingPlanName = '${funcPrefix}primarytodoplan'
-var secondaryHostingPlanName = '${funcPrefix}secondarytodoplan'
+var primaryHostingPlanName = '${funcPrefix}primaryplan'
+var secondaryHostingPlanName = '${funcPrefix}secondaryplan'
 
-var primaryFunctionAppName = '${funcPrefix}primarytodofunc'
-var secondaryFunctionAppName = '${funcPrefix}secondarytodofunc'
+var primaryFunctionAppName = '${funcPrefix}primaryfunc'
+var secondaryFunctionAppName = '${funcPrefix}secondaryfunc'
 
 var primaryApplicationInsightsName = primaryFunctionAppName
 var secondaryApplicationInsightsName = secondaryFunctionAppName

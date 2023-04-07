@@ -166,8 +166,8 @@ resource primaryHostingPlan 'Microsoft.Web/serverfarms@2021-03-01' = {
   name: primaryHostingPlanName
   location: primaryLocation
   sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
+    name: 'B1'
+    tier: 'Standard'
   }
   properties: {}
 }
@@ -176,8 +176,8 @@ resource secondaryHostingPlan 'Microsoft.Web/serverfarms@2021-03-01' = {
   name: secondaryHostingPlanName
   location: secondaryLocation
   sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
+    name: 'B1'
+    tier: 'Standard'
   }
   properties: {}
 }

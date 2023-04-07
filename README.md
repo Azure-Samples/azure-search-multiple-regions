@@ -15,11 +15,53 @@ The sample uses [Bicep](https://learn.microsoft.com/azure/azure-resource-manager
 
 ## Sample set up
 
-TBD
+1. Install the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
+1. Clone or download this sample repository.
+1. Extract contents if the download is a zip file. Make sure the files are read-write.
 
 ## Run the sample
 
-TBD
+### Cosmos DB Indexer Sync
+
+Import data from Cosmos DB NoSQL automatically to multiple search services using [indexers](https://learn.microsoft.com/azure/search/search-howto-index-cosmosdb). This allows multiple instances of applications backed by separate search services to stay in sync. This sample uses a [pull-based sync architecture](https://learn.microsoft.com/azure/search/search-what-is-data-import#pulling-data-into-an-index).
+
+![Cosmos DB Indexer Sync Architecture](./media/IndexerSyncArchitecture.png)
+
+1. Create a new resource group in your Azure subscription.
+1. Navigate to the `bicep` directory in the sample
+1. Run the following CLI command:
+`az deployment group create --resource-group <your-resource-group> --template-file cosmosdb-indexer-sync.bicep --mode Incremental --parameters @cosmosdb-indexer-sync.parameters.json
+`
+1. Two instances of a search application are deployed, automatically syncing to a [Cosmos DB Account](https://learn.microsoft.com/azure/cosmos-db/resource-model) using indexers.
+1. Edit the bicep file or parameters file to change attributes of this application, such as the primary or secondary regions it is deployed in.
+
+### Comsos DB Change Feed Sync
+
+Import data from Cosmos DB NoSQL automatically to multiple search services using [change feed and Azure Functions](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions). This allows multiple instances of applications backed by separate search services to receive Cosmos DB changes quickly and stay in sync. This sample uses a [push-based sync architecture](https://learn.microsoft.com/azure/search/search-what-is-data-import#pushing-data-to-an-index).
+
+![Cosmos DB Change Feed Sync Architecture](./media/ChangeFeedSyncArchitecture.png)
+
+1. Create a new resource group in your Azure subscription.
+1. Navigate to the `bicep` directory in the sample
+1. Run the following CLI command:
+`az deployment group create --resource-group <your-resource-group> --template-file cosmosdb-changefeed-sync.bicep --mode Incremental --parameters @cosmosdb-changefeed-sync.parameters.json
+`
+1. Two instances of a search application are deployed, automatically syncing to a [Cosmos DB Account](https://learn.microsoft.com/azure/cosmos-db/resource-model) using [change feed](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions).
+1. Edit the bicep file or parameters file to change attributes of this application, such as the primary or secondary regions it is deployed in.
+
+### Traffic Manager
+
+Use [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/) to automatically fail over between search services if one encounters an issue.
+
+![Traffic Manager Architecture](./media/TrafficManagerArchitecture.png)
+
+1. Create a new resource group in your Azure subscription
+1. Navigate to the `bicep` directory in the sample
+1. Run the following CLI command:
+`az deployment group create --resource-group <your-resource-group> --template-file search-trafficmanager.bicep --mode Incremental --parameters @search-trafficmanager.parameters.json
+`
+1. Two instances of a search application are deployed behind a Traffic Manager Profile.
+1. Edit the bicep file or parameters file to change attributes of this application, such as the primary or secondary regions it is deployed in.
 
 ## Sample clean up
 
