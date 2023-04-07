@@ -1,0 +1,14 @@
+{
+  "bindings": [
+    {
+      "type": "cosmosDBTrigger",
+      "name": "documents",
+      "direction": "in",
+      "connection": "COSMOSDB_CONNECTION_STRING",
+      "databaseName": "Sample",
+      "containerName": "ToDo",
+      "leaseContainerName": "leases",
+      "createLeaseContainerIfNotExists": false
+    }
+  ]
+}
