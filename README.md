@@ -12,7 +12,7 @@ All of the templates create two billable [Azure Cognitive Search](https://learn.
 
 **Option 2** also uses Cosmos DB NoSQL, but doesn't assume indexer-driven indexing. Instead, this approach relies on a [Cosmos DB change feed](https://learn.microsoft.com/azure/cosmos-db/change-feed) and [Azure functions](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions). Updates to a Cosmos DB container are written to a change feed. Azure Functions provide the connection to the change feed. The functions are automatically triggered on each new event in the Azure Cosmos DB container's change feed.
 
-**Option 3** overlays [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/) for request redirection. Start with either option 1 or option 3. Option 3 configuration uses the same resource names as options 1 and 2, so only the new components are created.
+**Option 3** doesn't perform index synchronization. Instead, it provides request redirection through [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/). We recommend that you start with either option 1 or option 2, and then run option 3 if you want request redirection for failures at the primary endpoint. 
 
 ## Prerequisites
 
@@ -60,11 +60,11 @@ You only need to run one version. Each one creates a Cosmos DB account and two s
 
 Import data from Cosmos DB NoSQL automatically to multiple search services using [indexers](https://learn.microsoft.com/azure/search/search-howto-index-cosmosdb). This approach is based on having nearly identical data on two instances of Cognitive Search.
 
-For synchronization, this sample uses scheduled [indexers to pull data into a search index](https://learn.microsoft.com/azure/search/search-what-is-data-import#pulling-data-into-an-index). On each search service, the indexers run at 5 minute intervals, and both data sources point to the same [Cosmos DB Account](https://learn.microsoft.com/azure/cosmos-db/resource-model) and database. A 5-minute interval is considered the minimum for indexer schedules. If you require more frequent synchronization, consider another option.
+For synchronization, this sample uses scheduled [indexers to pull data into a search index](https://learn.microsoft.com/azure/search/search-what-is-data-import#pulling-data-into-an-index). On each search service, the indexers run at 5 minute intervals, and both data sources point to the same [Cosmos DB Account](https://learn.microsoft.com/azure/cosmos-db/resource-model) and database. A 5-minute interval is considered the minimum for indexer schedules. If you require more frequent synchronization, consider the Change Feed option.
 
 ![Cosmos DB Indexer Sync Architecture](./media/IndexerSyncArchitecture.png)
 
-1. From the command line tool, navigate to the `bicep` directory in the sample. If you're using Windows, the folder path might be `C:\Users\<USER-NAME>\azure-search-multiple-regions\bicep>`.
+1. From the command line tool, navigate to the `bicep` directory in the sample.
 
 1. Optionally, review the bicep file (cosmosdb-indexer-sync.bicep) or parameters file (cosmosdb-indexer-sync.parameters.json). Feel free to change attributes, such as the primary or secondary regions, or the resource names.
 
