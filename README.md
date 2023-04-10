@@ -6,13 +6,13 @@ The sample uses the [Azure CLI](https://learn.microsoft.com/cli/azure/) and [Bic
 
 All of the templates create two billable [Azure Cognitive Search](https://learn.microsoft.com/azure/search/search-create-service-portal) resources, same tier and configuration, in different regions. You can't use the free tier for this scenario. The assumption is you'll use one of the search services as a primary instance to handle all of your indexing and query workloads. The second search service exists as a copy of the first. Each option varies on how it provides synchronization between the search resources.
 
-## Three options for business continuity and disaster recovery
+## Three scenarios for business continuity and disaster recovery
 
 **Option 1** provides Azure Cognitive Search (2), each configured to run under a managed identity, with [Azure Cosmos DB NoSQL](https://learn.microsoft.com/azure/cosmos-db/try-free?tabs=nosql). Each search resource is created with identical indexers, data sources, and indexes. Both indexers run every 5 minutes on a schedule to synchronize the indexes. Both data sources connect to the same Cosmos database.
 
 **Option 2** also uses Cosmos DB NoSQL, but doesn't assume indexer-driven indexing. Instead, this approach relies on a [Cosmos DB change feed](https://learn.microsoft.com/azure/cosmos-db/change-feed) and [Azure functions](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions). Updates to a Cosmos DB container are written to a change feed. Azure Functions provide the connection to the change feed. The functions are automatically triggered on each new event in the Azure Cosmos DB container's change feed.
 
-**Option 3** is the same as the second option, but includes [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/) for request redirection.
+**Option 3** overlays [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/) for request redirection. Start with either option 1 or option 3. Option 3 configuration uses the same resource names as options 1 and 2, so only the new components are created.
 
 ## Prerequisites
 
@@ -98,25 +98,29 @@ Two instances of Cognitive Search are deployed, automatically syncing to a [Cosm
 
 To test the deployment, add a few items to the built-in sample ToDo database on Cosmos DB. Unlike the indexer-based approach,there is no minimum interval. You can check the indexes in both search services. You should see the same content in both.
 
-### Option 3: Use Traffic Manager
+### Option 3: Add Traffic Manager
 
 Use [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/) to automatically fail over between search services if one of them encounters an issue.
 
-This option creates a traffic manager profile.
+This option creates a traffic manager profile for search services created using either option 1 or option 2.
 
 ![Traffic Manager Architecture](./media/TrafficManagerArchitecture.png)
 
-1. Create a new resource group in your Azure subscription.
+1. Get the resource group name for either option 1 or option 2.
 
-1. Navigate to the `bicep` directory in the sample. You'll use the search-trafficmanager Bicep and parameters file. Edit these files to change application attributes such as the primary or secondary regions it is deployed in.
+1. Navigate to the `bicep` directory in the sample. You'll use the search-trafficmanager Bicep and parameters file. 
 
-1. Run the following CLI command:
+1. Run the following CLI command, using the resource group from either option 1 or option 2.
 
    ```azurecli
    az deployment group create --resource-group <your-resource-group> --template-file search-trafficmanager.bicep --mode Incremental --parameters @search-trafficmanager.parameters.json
    ```
 
-Two instances of a search application are deployed behind a Traffic Manager Profile.
+Both search resources are deployed behind a Traffic Manager Profile. 
+
+To test this scenario, add items to the built-in sample ToDo database on Cosmos DB. If you used option 1, the search index is populated and synchronized through indexers. For option 2, the search index is updated and synchronized using the change feed functions in Cosmos DB.
+
+Option 3 doesn't change the synchronization mechanism, but by incorporating Traffic Manager, you get earlier detection and redirection if the primary endpoint fails.
 
 ## Sample clean up
 
