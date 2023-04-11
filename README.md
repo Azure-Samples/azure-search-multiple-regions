@@ -1,4 +1,17 @@
-# Multi-region deployment of Azure Cognitive Search for business continuity
+---
+page_type: sample
+languages:
+  - bicep
+  - json
+name: Deploy search across multiple regions
+description: "These templates deploy a fully configured search solution for business continuity and disaster recovery."
+products:
+  - azure
+  - azure-cognitive-search
+urlFragment: multiple-region-search
+---
+
+# Multi-region deployment of Azure Cognitive Search for business continuity and disaster recovery
 
 This repository contains templates that deploy Azure Cognitive Search across multiple regions. There are three patterns to help get you started. Choose the one that best satisfies your business continuity and disaster recovery requirements for Azure Cognitive Search workloads.
 
