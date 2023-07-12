@@ -115,7 +115,11 @@ To test the deployment, add a few items to the built-in sample ToDo database on 
 
 Use [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/) to automatically fail over between search services if one of them encounters an issue.
 
-This option creates a traffic manager profile for search services created using either option 1 or option 2.
+This option creates a traffic manager profile for search services created using either option 1 or option 2. Option 3 doesn't change the synchronization mechanism, but by incorporating Traffic Manager, you get earlier detection and redirection if the primary endpoint fails.
+
+Azure function apps provide the search client and send open query requests (`search=*`) every 15 minutes. Traffic Manager pings each app for proof of availability. If a search service goes down, the function app fails to respond, and Traffic Manager redirects requests to the remaining search service. In this configuration, the function app and search service fail as a single unit. 
+
+If you want safeguards against multiple points of failure, remember that you will need some service or mechanism that sits between Cognitive Search and Traffic Manager. 
 
 ![Traffic Manager Architecture](./media/TrafficManagerArchitecture.png)
 
@@ -131,9 +135,11 @@ This option creates a traffic manager profile for search services created using 
 
 Both search resources are deployed behind a Traffic Manager Profile. 
 
-To test this scenario, add items to the built-in sample ToDo database on Cosmos DB. If you used option 1, the search index is populated and synchronized through indexers. For option 2, the search index is updated and synchronized using the change feed functions in Cosmos DB.
+To test this scenario, you should have previously loaded a search index using either option 1 or 2.
 
-Option 3 doesn't change the synchronization mechanism, but by incorporating Traffic Manager, you get earlier detection and redirection if the primary endpoint fails.
+1. In Azure portal, verify that both search services have a `cosmosdb-index` and that the **Monitoring** tab shows query activity.
+1. Get the endpoint to the function app.
+1. Delete the primary search service (there is no stop or pause option).
 
 ## Sample clean up
 
