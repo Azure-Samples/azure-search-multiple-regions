@@ -117,9 +117,9 @@ Use [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/) 
 
 This option creates a traffic manager profile for search services created using either option 1 or option 2. Option 3 doesn't change the synchronization mechanism, but by incorporating Traffic Manager, you get earlier detection and redirection if the primary endpoint fails.
 
-Azure function apps provide the search client and send open query requests (`search=*`) every 15 minutes. Traffic Manager pings each app for proof of availability. If a search service goes down, the function app fails to respond, and Traffic Manager redirects requests to the remaining search service. In this configuration, the function app and search service fail as a single unit. 
+Azure function apps provide the search client and send open query requests (`search=*`) every 15 minutes. Traffic Manager pings each app for proof of viability. If a search service goes down, the function app fails to respond, and Traffic Manager redirects requests to the other funtion app. 
 
-If you want safeguards against multiple points of failure, remember that you will need some service or mechanism that sits between Cognitive Search and Traffic Manager. 
+If you want redirection at the search service level, you'll need some thin service or mechanism that sits between Cognitive Search and Traffic Manager.
 
 ![Traffic Manager Architecture](./media/TrafficManagerArchitecture.png)
 
