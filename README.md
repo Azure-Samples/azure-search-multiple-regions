@@ -91,6 +91,9 @@ It takes several minutes to deploy all of the resources.
 
 Indexers are configured to use the built-in ToDo sample database. To test the deployment, add a few items to the built-in sample ToDo database on Cosmos DB. Wait for five minutes, and then check the indexes in both search services. You should see the same content in both.
 
+> [!IMPORTANT]
+> The deployment scripts created by option 1 store the Cosmos DB account key in plain text. You should either delete the deployment scripts or modify them to delete the account key. In Azure portal, navigate to the resource group that you previously created. There, you will find two deployment script, both of which have an account key in plain text. Delete or modify the scripts.
+
 ### Option 2: Cosmos DB change feed synchronization
 
 Import data from Cosmos DB NoSQL automatically to multiple search services using [change feed and Azure Functions](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions). This allows multiple instances of applications backed by separate search services to receive Cosmos DB changes quickly and stay in sync. This sample uses a [push-based sync architecture](https://learn.microsoft.com/azure/search/search-what-is-data-import#pushing-data-to-an-index) to populate the search indexes.
@@ -104,7 +107,7 @@ Import data from Cosmos DB NoSQL automatically to multiple search services using
 1. Run the following CLI command:
 
    ```azurecli
-   az deployment group create --resource-group <your-resource-group> --template-file cosmosdb-changefeed-sync.bicep --mode Incremental --parameters @cosmosdb-changefeed-sync.parameters.json
+   az deployment group create --resource-group <YOUR-RESOURCE-GROUP> --template-file cosmosdb-changefeed-sync.bicep --mode Incremental --parameters @cosmosdb-changefeed-sync.parameters.json
    ```
 
 Two instances of Cognitive Search are deployed, automatically syncing to a [Cosmos DB Account](https://learn.microsoft.com/azure/cosmos-db/resource-model) using [change feed](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions).
@@ -130,7 +133,7 @@ If you want redirection at the search service level, you'll need some thin servi
 1. Run the following CLI command, using the resource group from either option 1 or option 2.
 
    ```azurecli
-   az deployment group create --resource-group <your-resource-group> --template-file search-trafficmanager.bicep --mode Incremental --parameters @search-trafficmanager.parameters.json
+   az deployment group create --resource-group YOUR-RESOURCE-GROUP> --template-file search-trafficmanager.bicep --mode Incremental --parameters @search-trafficmanager.parameters.json
    ```
 
 Both search resources are deployed behind a Traffic Manager Profile. 
