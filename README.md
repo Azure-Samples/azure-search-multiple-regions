@@ -11,17 +11,17 @@ products:
 urlFragment: multiple-region-search
 ---
 
-# Multi-region deployment of Azure Cognitive Search for business continuity and disaster recovery
+# Multi-region deployment of Azure AI Search for business continuity and disaster recovery
 
-This repository contains templates that deploy Azure Cognitive Search across multiple regions. There are three patterns to help get you started. Choose the one that best satisfies your business continuity and disaster recovery requirements for Azure Cognitive Search workloads.
+This repository contains templates that deploy Azure AI Search across multiple regions. There are three patterns to help get you started. Choose the one that best satisfies your business continuity and disaster recovery requirements for Azure AI Search workloads.
 
 The sample uses the [Azure CLI](https://learn.microsoft.com/cli/azure/) and [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep).
 
-All of the templates create two billable [Azure Cognitive Search](https://learn.microsoft.com/azure/search/search-create-service-portal) resources, same tier and configuration, in different regions. You can't use the free tier for this scenario. The assumption is you'll use one of the search services as a primary instance to handle all of your indexing and query workloads. The second search service exists as a copy of the first. Each option varies on how it provides synchronization between the search resources.
+All of the templates create two billable [Azure AI Search](https://learn.microsoft.com/azure/search/search-create-service-portal) resources, same tier and configuration, in different regions. You can't use the free tier for this scenario. The assumption is you'll use one of the search services as a primary instance to handle all of your indexing and query workloads. The second search service exists as a copy of the first. Each option varies on how it provides synchronization between the search resources.
 
 ## Three scenarios for business continuity and disaster recovery
 
-**Option 1** provides Azure Cognitive Search (2), each configured to run under a managed identity, with [Azure Cosmos DB NoSQL](https://learn.microsoft.com/azure/cosmos-db/try-free?tabs=nosql). Each search resource is created with identical indexers, data sources, and indexes. Both indexers run every 5 minutes on a schedule to synchronize the indexes. Both data sources connect to the same Cosmos database.
+**Option 1** provides Azure AI Search (2), each configured to run under a managed identity, with [Azure Cosmos DB NoSQL](https://learn.microsoft.com/azure/cosmos-db/try-free?tabs=nosql). Each search resource is created with identical indexers, data sources, and indexes. Both indexers run every 5 minutes on a schedule to synchronize the indexes. Both data sources connect to the same Cosmos database.
 
 **Option 2** also uses Cosmos DB NoSQL, but doesn't assume indexer-driven indexing. Instead, this approach relies on a [Cosmos DB change feed](https://learn.microsoft.com/azure/cosmos-db/change-feed) and [Azure functions](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions). Updates to a Cosmos DB container are written to a change feed. Azure Functions provide the connection to the change feed. The functions are automatically triggered on each new event in the Azure Cosmos DB container's change feed.
 
@@ -65,13 +65,13 @@ All of the templates create two billable [Azure Cognitive Search](https://learn.
 
 ## Run the sample
 
-In Azure Cognitive Search, indexing is achieved through push APIs that upload JSON documents into search, or through pull APIs that use indexers to retrieve and serialize documents from supported data sources. Both approaches are widely used. For this reason, business continuity is demonstrated for both approaches. The first option uses indexers to pull in data from Cosmos DB NoSQL. The second option pushes JSON documents from Cosmos DB into a search.
+In Azure AI Search, indexing is achieved through push APIs that upload JSON documents into search, or through pull APIs that use indexers to retrieve and serialize documents from supported data sources. Both approaches are widely used. For this reason, business continuity is demonstrated for both approaches. The first option uses indexers to pull in data from Cosmos DB NoSQL. The second option pushes JSON documents from Cosmos DB into a search.
 
 You only need to run one version. Each one creates a Cosmos DB account and two search services.
 
 ### Option 1: Cosmos DB indexer synchronization
 
-Import data from Cosmos DB NoSQL automatically to multiple search services using [indexers](https://learn.microsoft.com/azure/search/search-howto-index-cosmosdb). This approach is based on having nearly identical data on two instances of Cognitive Search.
+Import data from Cosmos DB NoSQL automatically to multiple search services using [indexers](https://learn.microsoft.com/azure/search/search-howto-index-cosmosdb). This approach is based on having nearly identical data on two instances of AI Search.
 
 For synchronization, this sample uses scheduled [indexers to pull data into a search index](https://learn.microsoft.com/azure/search/search-what-is-data-import#pulling-data-into-an-index). On each search service, the indexers run at 5 minute intervals, and both data sources point to the same [Cosmos DB Account](https://learn.microsoft.com/azure/cosmos-db/resource-model) and database. A 5-minute interval is considered the minimum for indexer schedules. If you require more frequent synchronization, consider the Change Feed option.
 
@@ -110,7 +110,7 @@ Import data from Cosmos DB NoSQL automatically to multiple search services using
    az deployment group create --resource-group <YOUR-RESOURCE-GROUP> --template-file cosmosdb-changefeed-sync.bicep --mode Incremental --parameters @cosmosdb-changefeed-sync.parameters.json
    ```
 
-Two instances of Cognitive Search are deployed, automatically syncing to a [Cosmos DB Account](https://learn.microsoft.com/azure/cosmos-db/resource-model) using [change feed](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions).
+Two instances of AI Search are deployed, automatically syncing to a [Cosmos DB Account](https://learn.microsoft.com/azure/cosmos-db/resource-model) using [change feed](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions).
 
 To test the deployment, add a few items to the built-in sample ToDo database on Cosmos DB. Unlike the indexer-based approach,there is no minimum interval. You can check the indexes in both search services. You should see the same content in both.
 
@@ -122,7 +122,7 @@ This option creates a traffic manager profile for search services created using 
 
 Azure function apps provide the search client and send open query requests (`search=*`) every 15 minutes. Traffic Manager pings each app for proof of viability. If a search service goes down, the function app fails to respond, and Traffic Manager redirects requests to the other funtion app. 
 
-If you want redirection at the search service level, you'll need some thin service or mechanism that sits between Cognitive Search and Traffic Manager.
+If you want redirection at the search service level, you'll need some thin service or mechanism that sits between AI Search and Traffic Manager.
 
 ![Traffic Manager Architecture](./media/TrafficManagerArchitecture.png)
 
@@ -154,6 +154,6 @@ This sample creates multiple Azure resources, several of which are billable. Aft
 
 ## Resources
 
-+ [Azure Cognitive Search documentation](https://learn.microsoft.com/azure/search/)
++ [Azure AI Search documentation](https://learn.microsoft.com/azure/search/)
 + [Samples browser on Microsoft Learn](https://learn.microsoft.com/samples/browse/)
 + [Training](https://learn.microsoft.com/training/)
