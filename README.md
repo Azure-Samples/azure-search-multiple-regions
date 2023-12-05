@@ -7,7 +7,7 @@ name: Deploy search across multiple regions
 description: "These templates deploy a fully configured search solution for business continuity and disaster recovery."
 products:
   - azure
-  - azure-cognitive-search
+  - azure-ai-search
 urlFragment: multiple-region-search
 ---
 
