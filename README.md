@@ -1,160 +1,391 @@
----
-page_type: sample
-languages:
-  - bicep
-  - json
-name: Deploy search across multiple regions
-description: "These templates deploy a fully configured search solution for business continuity and disaster recovery."
-products:
-  - azure
-  - azure-cognitive-search
-urlFragment: multiple-region-search
----
+# Multi-region deployment of Azure AI Search with Azure Front Door for business continuity and disaster recovery
 
-# Multi-region deployment of Azure AI Search for business continuity and disaster recovery
-
-This repository contains templates that deploy Azure AI Search across multiple regions. There are three patterns to help get you started. Choose the one that best satisfies your business continuity and disaster recovery requirements for Azure AI Search workloads.
+This sample demonstrates automatic failover for Azure AI Search using Azure Front Door with priority-based routing. The deployment creates Azure AI Search services in two regions with Azure Functions APIs and automatic failover capabilities.
 
 The sample uses the [Azure CLI](https://learn.microsoft.com/cli/azure/) and [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep).
 
-All of the templates create two billable [Azure AI Search](https://learn.microsoft.com/azure/search/search-create-service-portal) resources, same tier and configuration, in different regions. You can't use the free tier for this scenario. The assumption is you'll use one of the search services as a primary instance to handle all of your indexing and query workloads. The second search service exists as a copy of the first. Each option varies on how it provides synchronization between the search resources.
+The templates create two billable [Azure AI Search](https://learn.microsoft.com/azure/search/search-create-service-portal) resources (Basic tier) in different regions. You can't use the free tier for this sample. The primary search service (westus2) handles indexing and query workloads under normal conditions. The secondary search service (westus3) serves as a failover copy. Azure Front Door monitors both regions with health probes and automatically routes traffic to the secondary region if the primary becomes unavailable.
 
-## Three scenarios for business continuity and disaster recovery
+## Data synchronization options
 
-**Option 1** provides Azure AI Search (2), each configured to run under a managed identity, with [Azure Cosmos DB NoSQL](https://learn.microsoft.com/azure/cosmos-db/try-free?tabs=nosql). Each search resource is created with identical indexers, data sources, and indexes. Both indexers run every 5 minutes on a schedule to synchronize the indexes. Both data sources connect to the same Cosmos database.
+This sample provides two methods to keep search indexes synchronized across regions:
 
-**Option 2** also uses Cosmos DB NoSQL, but doesn't assume indexer-driven indexing. Instead, this approach relies on a [Cosmos DB change feed](https://learn.microsoft.com/azure/cosmos-db/change-feed) and [Azure functions](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions). Updates to a Cosmos DB container are written to a change feed. Azure Functions provide the connection to the change feed. The functions are automatically triggered on each new event in the Azure Cosmos DB container's change feed.
+### Option 1: Scheduled indexers (default)
 
-**Option 3** doesn't perform index synchronization. Instead, it provides request redirection through [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/). We recommend that you start with either option 1 or option 2, and then run option 3 if you want request redirection for failures at the primary endpoint. 
+Uses Azure AI Search [indexers](https://learn.microsoft.com/azure/search/search-indexer-overview) to pull data from Cosmos DB NoSQL on a schedule. Both search services configure identical indexers that run every 5 minutes, pointing to the same Cosmos DB database. This is the simpler approach and works well when 5-minute synchronization latency is acceptable.
+
+**Pros:**
+- Simple configuration
+- No additional code required
+- Built-in Azure AI Search feature
+
+**Cons:**
+- 5-minute minimum sync interval
+- Slight delay in data availability
+
+### Option 2: Change feed (real-time)
+
+Uses [Cosmos DB change feed](https://learn.microsoft.com/azure/cosmos-db/change-feed) with Azure Functions to push updates to search indexes in real-time. When documents change in Cosmos DB, Azure Functions are triggered immediately and push the updates to both search services. This provides near-instantaneous synchronization.
+
+**Pros:**
+- Real-time synchronization
+- Near-zero latency
+- Immediate data availability
+
+**Cons:**
+- More complex configuration
+- Requires Azure Functions
+- Additional code to maintain
 
 ## Prerequisites
 
-+ [Azure subscription](https://azure.microsoft.com/free/)
-+ [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
-+ Permission to create and access resources in Azure
+- [Azure subscription](https://azure.microsoft.com/free/)
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
+- [PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) 7.0 or later
+- Permission to create resources in Azure
 
-## Sample set up
+## Sample setup
 
 1. Install the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) or another supported tool for Bicep deployment.
 
-1. Clone or download this sample repository.
+2. Clone or download this sample repository.
 
-1. Extract contents if the download is a zip file. Make sure the files are read-write.
+3. Extract contents if the download is a zip file. Make sure the files are read-write.
 
-1. Sign in to your Azure account:
+4. Sign in to your Azure account:
 
-   `az login`
-
-1. If you have multiple Azure subscriptions, list them and get the subscription ID of the one you want to use.
-
-   ```azurecli
-   az account show
+   ```powershell
+   az login
    ```
 
-1. Set it to the correct subscription ID:
+5. Create a resource group to contain all of the resources:
 
-   ```azurecli
-    az account set --subscription <YOUR-SUBSCRIPTION-ID>
-   ```
-
-1. Create a resource group to contain all of the resources. If you're deploying and comparing more than one option, create a separate resource group for each one.
-
-   ```azurecli
-   az group create --name demoResourceGroup --location westus
+   ```powershell
+   az group create --name demoResourceGroup --location westus2
    ```
 
 ## Run the sample
 
-In Azure AI Search, indexing is achieved through push APIs that upload JSON documents into search, or through pull APIs that use indexers to retrieve and serialize documents from supported data sources. Both approaches are widely used. For this reason, business continuity is demonstrated for both approaches. The first option uses indexers to pull in data from Cosmos DB NoSQL. The second option pushes JSON documents from Cosmos DB into a search.
+### Deploy with scheduled indexers (Option 1)
 
-You only need to run one version. Each one creates a Cosmos DB account and two search services.
+From the command line, run the deployment script with the default indexer synchronization:
 
-### Option 1: Cosmos DB indexer synchronization
+```powershell
+.\deploy.ps1 -ResourceGroupName "demoResourceGroup"
+```
 
-Import data from Cosmos DB NoSQL automatically to multiple search services using [indexers](https://learn.microsoft.com/azure/search/search-howto-index-cosmosdb). This approach is based on having nearly identical data on two instances of AI Search.
+Or explicitly specify the indexer method:
 
-For synchronization, this sample uses scheduled [indexers to pull data into a search index](https://learn.microsoft.com/azure/search/search-what-is-data-import#pulling-data-into-an-index). On each search service, the indexers run at 5 minute intervals, and both data sources point to the same [Cosmos DB Account](https://learn.microsoft.com/azure/cosmos-db/resource-model) and database. A 5-minute interval is considered the minimum for indexer schedules. If you require more frequent synchronization, consider the Change Feed option.
+```powershell
+.\deploy.ps1 -ResourceGroupName "demoResourceGroup" -SyncMethod "indexer"
+```
 
-![Cosmos DB Indexer Sync Architecture](./media/IndexerSyncArchitecture.png)
+### Deploy with change feed (Option 2)
 
-1. From the command line tool, navigate to the `bicep` directory in the sample.
+From the command line, run the deployment script with change feed synchronization:
 
-1. Optionally, review the bicep file (cosmosdb-indexer-sync.bicep) or parameters file (cosmosdb-indexer-sync.parameters.json). Feel free to change attributes, such as the primary or secondary regions, or the resource names.
+```powershell
+.\deploy.ps1 -ResourceGroupName "demoResourceGroup" -SyncMethod "changefeed"
+```
 
-1. Run the next CLI command to create the Cosmos DB account, database, and search resources:
+### What gets deployed
 
-   ```azurecli
-   az deployment group create --resource-group <YOUR-RESOURCE-GROUP> --template-file cosmosdb-indexer-sync.bicep --mode Incremental --parameters @cosmosdb-indexer-sync.parameters.json
-   ```
+The deployment script will:
+1. Create Azure AI Search services in two regions (westus2 and westus3)
+2. Deploy Azure Functions with automatic code deployment
+3. Configure Azure Front Door with priority-based routing
+4. Deploy Cosmos DB NoSQL (serverless) for data storage
+5. Populate Cosmos DB with 50 sample product documents
+6. Configure synchronization (indexers or change feed based on selection)
+7. Configure the frontend with the Front Door URL
+8. Save configuration for testing scripts
 
-It takes several minutes to deploy all of the resources.
+The deployment takes approximately 15-20 minutes to complete.
 
-Indexers are configured to use the built-in ToDo sample database. To test the deployment, add a few items to the built-in sample ToDo database on Cosmos DB. Wait for five minutes, and then check the indexes in both search services. You should see the same content in both.
+> **Note:** Front Door may require an additional 15-30 minutes after provisioning to fully propagate to the global edge network.
 
-> [!IMPORTANT]
-> The deployment scripts created by option 1 store the Cosmos DB account key in plain text. You should either delete the deployment scripts or modify them to delete the account key. In Azure portal, navigate to the resource group that you previously created. There, you will find two deployment script, both of which have an account key in plain text. Delete or modify the scripts.
+### Test the deployment
 
-### Option 2: Cosmos DB change feed synchronization
+Open `frontend/index.html` in your browser to test search functionality. The frontend is pre-configured with the Front Door endpoint and will display which region served each request.
 
-Import data from Cosmos DB NoSQL automatically to multiple search services using [change feed and Azure Functions](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions). This allows multiple instances of applications backed by separate search services to receive Cosmos DB changes quickly and stay in sync. This sample uses a [push-based sync architecture](https://learn.microsoft.com/azure/search/search-what-is-data-import#pushing-data-to-an-index) to populate the search indexes.
+### Test automatic failover
 
-![Cosmos DB Change Feed Sync Architecture](./media/ChangeFeedSyncArchitecture.png)
+Simulate a primary region failure by making the search service unavailable:
 
-1. Create a new resource group in your Azure subscription.
+```powershell
+.\test-failover.ps1
+```
 
-1. Navigate to the `bicep` directory in the sample. You'll use the cosmosdb-changefeed-sync Bicep and parameters file. Edit these files to change application attributes such as the primary or secondary regions it is deployed in.
+This script will:
+1. Disable public network access on the primary search service (simulates regional outage)
+2. Wait for Front Door health probes to detect the failure (~90 seconds)
+3. Test routing distribution (15 requests)
+4. Display a formatted status summary
 
-1. Run the following CLI command:
+**What happens:**
+- The primary search service becomes network-isolated (private-only access)
+- Function apps can no longer reach the primary search service
+- Health checks fail because searches cannot be executed
+- Front Door detects the unhealthy endpoint and routes 100% traffic to secondary region (westus3)
 
-   ```azurecli
-   az deployment group create --resource-group <YOUR-RESOURCE-GROUP> --template-file cosmosdb-changefeed-sync.bicep --mode Incremental --parameters @cosmosdb-changefeed-sync.parameters.json
-   ```
+This simulates a real Azure AI Search regional failure, not just a function app failure.
 
-Two instances of AI Search are deployed, automatically syncing to a [Cosmos DB Account](https://learn.microsoft.com/azure/cosmos-db/resource-model) using [change feed](https://learn.microsoft.com/azure/cosmos-db/nosql/change-feed-functions).
+### Test automatic failback
 
-To test the deployment, add a few items to the built-in sample ToDo database on Cosmos DB. Unlike the indexer-based approach,there is no minimum interval. You can check the indexes in both search services. You should see the same content in both.
+Restore the primary region by re-enabling the search service:
 
-### Option 3: Add Traffic Manager
+```powershell
+.\test-failback.ps1
+```
 
-Use [Azure Traffic Manager](https://learn.microsoft.com/azure/traffic-manager/) to automatically fail over between search services if one of them encounters an issue.
+This script will:
+1. Re-enable public network access on the primary search service
+2. Purge the Front Door cache
+3. Wait for health probes to detect recovery (~90 seconds)
+4. Test routing distribution (20 requests)
+5. Display a formatted status summary
 
-This option creates a traffic manager profile for search services created using either option 1 or option 2. Option 3 doesn't change the synchronization mechanism, but by incorporating Traffic Manager, you get earlier detection and redirection if the primary endpoint fails.
+You should see traffic automatically return to the primary region (westus2).
 
-Azure function apps provide the search client and send open query requests (`search=*`) every 15 minutes. Traffic Manager pings each app for proof of viability. If a search service goes down, the function app fails to respond, and Traffic Manager redirects requests to the other funtion app. 
-
-If you want redirection at the search service level, you'll need some thin service or mechanism that sits between AI Search and Traffic Manager.
-
-![Traffic Manager Architecture](./media/TrafficManagerArchitecture.png)
-
-1. Get the resource group name for either option 1 or option 2.
-
-1. Navigate to the `bicep` directory in the sample. You'll use the search-trafficmanager Bicep and parameters file. 
-
-1. Run the following CLI command, using the resource group from either option 1 or option 2.
-
-   ```azurecli
-   az deployment group create --resource-group YOUR-RESOURCE-GROUP> --template-file search-trafficmanager.bicep --mode Incremental --parameters @search-trafficmanager.parameters.json
-   ```
-
-Both search resources are deployed behind a Traffic Manager Profile. 
-
-To test this scenario, you should have previously loaded a search index using either option 1 or 2.
-
-1. In Azure portal, verify that both search services have a `cosmosdb-index` and that the **Monitoring** tab shows query activity.
-1. Get the endpoint to the function app.
-1. Delete the primary search service (there is no stop or pause option).
-
-## Sample clean up
+## Sample cleanup
 
 This sample creates multiple Azure resources, several of which are billable. After completing this exercise, delete any resources you no longer need.
 
-1. Sign in to the Azure portal.
+```powershell
+.\cleanup.ps1
+```
 
-1. To delete all of the resources, find and delete the resource groups that you created.
+Alternatively, delete the resource group manually:
+
+```powershell
+az group delete --name demoResourceGroup --yes --no-wait
+```
+
+## Architecture
+
+Azure Front Door provides global load balancing and automatic failover for the multi-region search deployment. Data is stored in Cosmos DB NoSQL and synchronized to both Azure AI Search services.
+
+```
++---------------------+
+|  Azure Front Door   |  Global endpoint with SSL termination
+|  (Priority Routing) |  Health probes every 30s
++----------+----------+
+           |
+    +------+------+
+    |             |
++---v--------+ +--v---------+
+|  Primary   | | Secondary  |
+|  westus2   | |  westus3   |
+| Priority 1 | | Priority 2 |
++------------+ +------------+
+| AI Search  | | AI Search  |
+| Functions  | | Functions  |
+| Storage    | | Storage    |
++-----+------+ +------+-----+
+      |               |
+      +-------+-------+
+              |
+      +-------v--------+
+      |   Cosmos DB    |  Single data source
+      |  NoSQL (50 docs)|  Serverless
+      |   Primary Region|
+      +----------------+
+```
+
+**Synchronization methods:**
+- **Option 1 (Indexer):** Scheduled indexers pull from Cosmos DB every 5 minutes
+- **Option 2 (Change Feed):** Azure Functions push changes in real-time via change feed
+
+**Failover behavior:**
+- Front Door routes to primary when healthy (Priority 1)
+- After 3 failed health checks (~90 seconds), traffic switches to secondary
+- Automatic failback when primary recovers
+- SSL termination at the edge eliminates certificate issues
+- Global edge network provides low latency
+
+## Configuration
+
+The deployment uses the following default parameters. To customize, edit [bicep/main.parameters.json](bicep/main.parameters.json).
+
+| Parameter | Default Value | Description |
+|-----------|--------------|-------------|
+| `projectName` | bcdrtest | Base name for resources - **Must be 3-10 characters** (lowercase letters/numbers only). |
+| `primaryRegion` | westus2 | Primary Azure region. Any valid Azure region name is supported. |
+| `secondaryRegion` | westus3 | Secondary Azure region. Any valid Azure region name is supported. |
+| `searchSku` | basic | Azure AI Search service tier |
+| `syncMethod` | indexer | Synchronization method: `indexer` or `changefeed` |
+
+> **[!] Important:** The `projectName` must be 10 characters or less to ensure generated resource names stay within Azure naming limits. Storage account names automatically use region abbreviations to accommodate longer region names.
+
+### Front Door configuration
+
+- **Routing method:** Priority-based (primary preferred)
+- **Health probe interval:** 30 seconds
+- **Health probe path:** `/api/health`
+- **Failure threshold:** 3 consecutive failures (~90 seconds)
+- **Protocol:** HTTPS-only with automatic HTTP->HTTPS redirect
+
+### Cosmos DB configuration
+
+- **API:** NoSQL
+- **Consistency level:** Session
+- **Billing mode:** Serverless
+- **Database:** productsdb
+- **Container:** products (50 sample documents)
+- **Partition key:** /id
+
+## API Reference
+
+### Search API
+
+Query the search index through the Front Door endpoint.
+
+**Endpoint:** `https://<front-door-endpoint>/api/search`
+
+**Method:** `GET`
+
+**Query parameters:**
+- `q` (required) - Search query string. Use `*` for all documents
+- `top` (optional) - Number of results to return. Default: 10
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "id": "1",
+      "name": "Product Name",
+      "description": "Description",
+      "category": "Category",
+      "price": 99.99
+    }
+  ],
+  "count": 8,
+  "region": "westus2",
+  "timestamp": "2026-01-30T12:00:00Z"
+}
+```
+
+### Health Check API
+
+Monitor the health status of each search service.
+
+**Endpoint:** `https://<front-door-endpoint>/api/health`
+
+**Method:** `GET`
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "region": "westus2",
+  "timestamp": "2026-01-30T12:00:00Z",
+  "searchService": "available"
+}
+```
+
+## Cost estimate
+
+| Resource | SKU | Quantity | Est. Monthly Cost |
+|----------|-----|----------|-------------------|
+| Azure AI Search | Basic | 2 | $150 |
+| Azure Functions | Basic (B1) | 2 | $26 |
+| Azure Front Door | Standard | 1 | $35+ |
+| Storage Accounts | Standard LRS | 3 | $3 |
+| Cosmos DB NoSQL | Serverless | 1 | ~$5* |
+| **Total** | | | **~$219+** |
+
+> **Note:** Front Door costs vary based on data transfer and request volume. Cosmos DB serverless billing is based on Request Units (RUs) consumed and storage used. Delete resources when testing is complete to avoid ongoing charges.
+>
+> *Cosmos DB estimate based on minimal read/write operations for testing. Production workloads will vary.
 
 ## Resources
 
-+ [Azure AI Search documentation](https://learn.microsoft.com/azure/search/)
-+ [Samples browser on Microsoft Learn](https://learn.microsoft.com/samples/browse/)
-+ [Training](https://learn.microsoft.com/training/)
-+ 
+- [Azure AI Search documentation](https://learn.microsoft.com/azure/search/)
+- [Azure Front Door documentation](https://learn.microsoft.com/azure/frontdoor/)
+- [Azure Functions documentation](https://learn.microsoft.com/azure/azure-functions/)
+- [BCDR for Azure AI Search](https://learn.microsoft.com/azure/search/search-performance-optimization#geo-redundancy)
+- [Samples browser on Microsoft Learn](https://learn.microsoft.com/samples/browse/)
+
+## Troubleshooting
+
+### Front Door returns "Page not found"
+
+**Cause:** Front Door edge network deployment not yet complete (common on first deployment).
+
+**Solution:**
+1. Wait 15-30 minutes after initial deployment
+2. Access the endpoint multiple times to trigger deployment
+3. Check deployment status:
+   ```powershell
+   az afd endpoint show \
+     --endpoint-name <endpoint-name> \
+     --profile-name <profile-name> \
+     --resource-group <rg-name> \
+     --query deploymentStatus
+   ```
+
+### Deployment fails with "service name already taken"
+
+**Solution:** Edit `bicep/main.parameters.json` and change `projectName` to a unique value.
+
+### Search returns no results
+
+**Solution:** Wait 2-3 minutes after deployment for indexing to complete.
+
+If indexes were not created during deployment, manually configure them:
+```powershell
+.\scripts\configure-search.ps1
+```
+
+### Search indexes not created during deployment
+
+**Cause:** Deployment script may have failed to create indexes or indexers.
+
+**Solution:** Run the manual configuration script:
+```powershell
+.\scripts\configure-search.ps1
+```
+
+This will create data sources, indexes, and indexers on both search services.
+
+### Function code needs to be redeployed
+
+Use `.\scripts\redeploy-functions.ps1` instead of the full `.\deploy.ps1` when:
+
+- You edited function code in the `functions/` directory (for example, `SearchApi/run.csx`, `HealthCheck/run.csx`, or `CosmosDbTrigger/run.csx`) and want to push those changes without re-running the full infrastructure deployment
+- The full `.\deploy.ps1` completed successfully but the function code deployment step failed or timed out
+- You want faster iteration cycles when only code has changed (not infrastructure)
+
+```powershell
+.\scripts\redeploy-functions.ps1
+```
+
+This packages and deploys the latest function code to both the primary (westus2) and secondary (westus3) function apps. It does not modify any infrastructure resources.
+
+### Front Door not routing correctly
+
+**Diagnostic steps:**
+1. Check origin health:
+   ```powershell
+   az afd origin list \
+     --origin-group-name function-origin-group \
+     --profile-name <profile-name> \
+     --resource-group <rg-name>
+   ```
+2. Verify function apps are running in Azure Portal
+3. Test health endpoint directly: `https://<function-app>.azurewebsites.net/api/health`
+
+### Function code deployment issues
+
+**Solution:**
+1. Check function app logs in Azure Portal
+2. Verify function app is running
+3. Redeploy only the function code (faster than a full redeploy):
+   ```powershell
+   .\scripts\redeploy-functions.ps1
+   ```
+4. If infrastructure changes are also needed, re-run the full deployment:
+   ```powershell
+   .\deploy.ps1 -ResourceGroupName "<your-resource-group>"
+   ```

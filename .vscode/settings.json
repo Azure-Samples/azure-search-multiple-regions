@@ -1,0 +1,6 @@
+{
+    "azureFunctions.deploySubpath": "azure-search-multiple-regions",
+    "azureFunctions.projectLanguage": "C#Script",
+    "azureFunctions.projectRuntime": "~4",
+    "debug.internalConsoleOptions": "neverOpen"
+}
