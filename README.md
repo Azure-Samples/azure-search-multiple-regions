@@ -118,7 +118,7 @@ The deployment takes approximately 15-20 minutes to complete.
 
 ### Test the deployment
 
-Open `frontend/index.html` in your web browser to test search functionality. The frontend is pre-configured with the Front Door endpoint and will display which region served each request.
+From your local copy of this repository, open `frontend/index.html` in a web browser to test search functionality. The deployment script pre-configures this file with the Front Door endpoint. The page displays which region served each request.
 
 ### Test automatic failover
 
