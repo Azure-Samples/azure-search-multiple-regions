@@ -79,7 +79,7 @@ To run this sample, you must first complete some basic setup steps to prepare yo
 
 ### Deploy with scheduled indexers (Option 1)
 
-From the command line, run the deployment script with the default indexer synchronization:
+Run the deployment script with the default indexer synchronization:
 
 ```powershell
 .\deploy.ps1 -ResourceGroupName "demoResourceGroup"
