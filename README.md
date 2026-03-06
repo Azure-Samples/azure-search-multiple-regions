@@ -26,7 +26,7 @@ This sample provides two methods to keep search indexes synchronized across regi
 
 #### Option 1: Scheduled indexers (default)
 
-Uses Azure AI Search [indexers](https://learn.microsoft.com/azure/search/search-indexer-overview) to pull data from Cosmos DB NoSQL on a schedule. Both search services configure identical indexers that run every 5 minutes, pointing to the same Cosmos DB database. This is the simpler approach and works well when 5-minute synchronization latency is acceptable.
+Uses Azure AI Search [indexers](https://learn.microsoft.com/azure/search/search-indexer-overview) to pull data from Azure Cosmos DB for NoSQL on a schedule. Both search services configure identical indexers that run every five minutes, pointing to the same Cosmos DB database. This is the simpler approach and works well when five-minute synchronization latency is acceptable.
 
 **Pros:**
 
