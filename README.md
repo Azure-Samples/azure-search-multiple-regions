@@ -16,7 +16,7 @@ Learn more: [Multi-region deployments in Azure AI Search](https://learn.microsof
 
 ## Overview
 
-The templates create two billable [Azure AI Search](https://learn.microsoft.com/azure/search/search-create-service-portal) resources (Basic tier) in different regions. **You can't use the free tier for this sample.*
+The Bicep templates create two billable [Azure AI Search](https://learn.microsoft.com/azure/search/search-create-service-portal) services (Basic tier) in different regions. *You can't use the free tier for this sample.*
 
 The primary search service (westus2) handles indexing and query workloads under normal conditions. The secondary search service (westus3) serves as a failover copy. Azure Front Door monitors both regions with health probes and automatically routes traffic to the secondary region if the primary becomes unavailable.
 
