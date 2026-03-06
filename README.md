@@ -311,7 +311,7 @@ Monitor the health status of each search service.
 | Azure Functions | Basic (B1) | 2 | $26 |
 | Azure Front Door | Standard | 1 | $35+ |
 | Storage Accounts | Standard LRS | 3 | $3 |
-| Cosmos DB NoSQL | Serverless | 1 | ~$5* |
+| Cosmos DB for NoSQL | Serverless | 1 | ~$5* |
 | **Total** | | | **~$219+** |
 
 Front Door costs vary based on data transfer and request volume. Cosmos DB serverless billing is based on Request Units (RUs) consumed and storage used. Delete resources when testing is complete to avoid ongoing charges.
