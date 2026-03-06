@@ -41,7 +41,7 @@ Uses Azure AI Search [indexers](https://learn.microsoft.com/azure/search/search-
 
 #### Option 2: Change feed (real-time)
 
-Uses [Cosmos DB change feed](https://learn.microsoft.com/azure/cosmos-db/change-feed) with Azure Functions to push updates to search indexes in real-time. When documents change in Cosmos DB, Azure Functions are triggered immediately and push the updates to both search services. This provides near-instantaneous synchronization.
+Uses [Cosmos DB change feed](https://learn.microsoft.com/azure/cosmos-db/change-feed) with Azure Functions to push updates to both search indexes in real time. When documents change in Cosmos DB, the change feed triggers Azure Functions that immediately update both search services. This provides near-instantaneous synchronization.
 
 **Pros:**
 
