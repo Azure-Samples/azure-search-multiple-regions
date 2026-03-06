@@ -139,7 +139,7 @@ This script will:
 
 - The primary search service becomes network-isolated (private-only access)
 - Function apps can no longer reach the primary search service
-- Health checks fail because searches cannot be executed
+- Health checks fail because searches can't be executed
 - Front Door detects the unhealthy endpoint and routes 100% traffic to secondary region (westus3)
 
 This simulates a real Azure AI Search regional failure, not just a function app failure.
