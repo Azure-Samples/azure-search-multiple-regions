@@ -384,7 +384,7 @@ Use `.\scripts\redeploy-functions.ps1` instead of the full `.\deploy.ps1` when:
 .\scripts\redeploy-functions.ps1
 ```
 
-This packages and deploys the latest function code to both the primary (westus2) and secondary (westus3) function apps. It does not modify any infrastructure resources.
+This packages and deploys the latest function code to both the primary (westus2) and secondary (westus3) function apps. It doesn't modify any infrastructure resources.
 
 ### Front Door not routing correctly
 
