@@ -36,7 +36,7 @@ Uses Azure AI Search [indexers](https://learn.microsoft.com/azure/search/search-
 
 **Cons:**
 
-- 5-minute minimum sync interval
+- Five-minute minimum sync interval
 - Slight delay in data availability
 
 #### Option 2: Change feed (real-time)
