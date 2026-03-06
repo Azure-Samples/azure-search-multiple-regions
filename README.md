@@ -229,7 +229,7 @@ The deployment uses the following default parameters. To customize, edit [bicep/
 | `projectName` | bcdrtest | Base name for resources - **Must be 3-10 characters** (lowercase letters/numbers only). |
 | `primaryRegion` | westus2 | Primary Azure region. Any valid Azure region name is supported. |
 | `secondaryRegion` | westus3 | Secondary Azure region. Any valid Azure region name is supported. |
-| `searchSku` | basic | Azure AI Search service tier |
+| `searchSku` | basic | Azure AI Search pricing tier |
 | `syncMethod` | indexer | Synchronization method: `indexer` or `changefeed` |
 
 > **[!] Important:** The `projectName` must be 10 characters or less to ensure generated resource names stay within Azure naming limits. Storage account names automatically use region abbreviations to accommodate longer region names.
