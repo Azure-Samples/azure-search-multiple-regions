@@ -63,7 +63,7 @@ To run this sample, you must first complete some basic setup steps to prepare yo
 
 2. Clone or download this sample repository.
 
-3. Extract contents if the download is a zip file. Make sure the files are read-write.
+3. Extract contents if the download is a ZIP file. Make sure the files are read-write.
 
 4. Sign in to your Azure account:
 
