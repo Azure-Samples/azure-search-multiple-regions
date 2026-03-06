@@ -114,7 +114,7 @@ The deployment script will:
 
 The deployment takes approximately 15-20 minutes to complete.
 
-> Front Door may require an additional 15-30 minutes after provisioning to fully propagate to the global edge network.
+> After provisioning, Front Door might require an additional 15–30 minutes to fully propagate to the global edge network.
 
 ### Test the deployment
 
