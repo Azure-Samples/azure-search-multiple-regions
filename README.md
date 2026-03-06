@@ -247,7 +247,7 @@ The deployment uses the following default parameters. To customize, edit [bicep/
 - **API:** NoSQL
 - **Consistency level:** Session
 - **Billing mode:** Serverless
-- **Database:** productsdb
+- **Database:** `productsdb`
 - **Container:** products (50 sample documents)
 - **Partition key:** `/id`
 
