@@ -407,7 +407,7 @@ This packages and deploys the latest function code to both the primary (westus2)
 
 **Solution:**
 
-1. Check function app logs in Azure Portal
+1. Check function app logs in the Azure portal
 2. Verify function app is running
 3. Redeploy only the function code (faster than a full redeploy):
 
