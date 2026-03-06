@@ -162,7 +162,7 @@ This script will:
 
 You should see traffic automatically return to the primary region (westus2).
 
-## Sample cleanup
+## Clean up resources
 
 This sample creates multiple Azure resources, several of which are billable. After completing this exercise, delete any resources you no longer need.
 
