@@ -249,7 +249,7 @@ The deployment uses the following default parameters. To customize, edit [bicep/
 - **Billing mode:** Serverless
 - **Database:** productsdb
 - **Container:** products (50 sample documents)
-- **Partition key:** /id
+- **Partition key:** `/id`
 
 ## API Reference
 
