@@ -310,7 +310,7 @@ Monitor the health status of each search service.
 | Azure AI Search | Basic | 2 | $150 |
 | Azure Functions | Basic (B1) | 2 | $26 |
 | Azure Front Door | Standard | 1 | $35+ |
-| Storage Accounts | Standard LRS | 3 | $3 |
+| Storage accounts | Standard LRS | 3 | $3 |
 | Cosmos DB for NoSQL | Serverless | 1 | ~$5* |
 | **Total** | | | **~$219+** |
 
