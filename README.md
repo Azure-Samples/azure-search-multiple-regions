@@ -305,7 +305,7 @@ Monitor the health status of each search service.
 
 ## Cost estimate
 
-| Resource | SKU | Quantity | Est. Monthly Cost |
+| Resource | Tier | Quantity | Estimated monthly cost |
 |----------|-----|----------|-------------------|
 | Azure AI Search | Basic | 2 | $150 |
 | Azure Functions | Basic (B1) | 2 | $26 |
