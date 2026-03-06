@@ -377,7 +377,7 @@ This will create data sources, indexes, and indexers on both search services.
 Use `.\scripts\redeploy-functions.ps1` instead of the full `.\deploy.ps1` when:
 
 - You edited function code in the `functions/` directory (for example, `SearchApi/run.csx`, `HealthCheck/run.csx`, or `CosmosDbTrigger/run.csx`) and want to push those changes without re-running the full infrastructure deployment
-- The full `.\deploy.ps1` completed successfully but the function code deployment step failed or timed out
+- The full `.\deploy.ps1` completed successfully, but the function code deployment step failed or timed out
 - You want faster iteration cycles when only code has changed (not infrastructure)
 
 ```powershell
