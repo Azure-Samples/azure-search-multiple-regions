@@ -362,7 +362,7 @@ If indexes were not created during deployment, manually configure them:
 
 ### Search indexes not created during deployment
 
-**Cause:** Deployment script may have failed to create indexes or indexers.
+**Cause:** Deployment script might have failed to create indexes or indexers.
 
 **Solution:** Run the manual configuration script:
 
