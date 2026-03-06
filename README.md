@@ -370,7 +370,7 @@ If indexes were not created during deployment, manually configure them:
 .\scripts\configure-search.ps1
 ```
 
-This will create data sources, indexes, and indexers on both search services.
+This script creates data sources, indexes, and indexers on both search services.
 
 ### Function code needs to be redeployed
 
