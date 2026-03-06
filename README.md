@@ -334,7 +334,7 @@ Front Door costs vary based on data transfer and request volume. Cosmos DB serve
 
 **Solution:**
 
-1. Wait 15-30 minutes after initial deployment
+1. Wait 15–30 minutes after initial deployment
 2. Access the endpoint multiple times to trigger deployment
 3. Check deployment status:
 
