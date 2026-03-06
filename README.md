@@ -210,12 +210,12 @@ Azure Front Door provides global load balancing and automatic failover for the m
 **Synchronization methods:**
 
 - **Option 1 (Indexer):** Scheduled indexers pull from Cosmos DB every 5 minutes
-- **Option 2 (Change Feed):** Azure Functions push changes in real-time via change feed
+- **Option 2 (Change feed):** Azure Functions push changes in real time via change feed
 
 **Failover behavior:**
 
 - Front Door routes to primary when healthy (Priority 1)
-- After 3 failed health checks (~90 seconds), traffic switches to secondary
+- After three failed health checks (~90 seconds), traffic switches to secondary
 - Automatic failback when primary recovers
 - SSL termination at the edge eliminates certificate issues
 - Global edge network provides low latency
@@ -226,7 +226,7 @@ The deployment uses the following default parameters. To customize, edit [bicep/
 
 | Parameter | Default value | Description |
 |-----------|--------------|-------------|
-| `projectName` | bcdrtest | Base name for resources - **Must be 3-10 characters** (lowercase letters/numbers only). |
+| `projectName` | bcdrtest | Base name for resources. **Must be 3-10 characters** (lowercase letters/numbers only). |
 | `primaryRegion` | westus2 | Primary Azure region. Any valid Azure region name is supported. |
 | `secondaryRegion` | westus3 | Secondary Azure region. Any valid Azure region name is supported. |
 | `searchSku` | basic | Azure AI Search pricing tier |
@@ -239,7 +239,7 @@ The deployment uses the following default parameters. To customize, edit [bicep/
 - **Routing method:** Priority-based (primary preferred)
 - **Health probe interval:** 30 seconds
 - **Health probe path:** `/api/health`
-- **Failure threshold:** 3 consecutive failures (~90 seconds)
+- **Failure threshold:** Three consecutive failures (~90 seconds)
 - **Protocol:** HTTPS-only with automatic HTTP->HTTPS redirect
 
 ### Cosmos DB configuration
@@ -251,7 +251,7 @@ The deployment uses the following default parameters. To customize, edit [bicep/
 - **Container:** `products` (50 sample documents)
 - **Partition key:** `/id`
 
-## API Reference
+## API reference
 
 ### Search API
 
@@ -323,7 +323,7 @@ Front Door costs vary based on data transfer and request volume. Cosmos DB serve
 - [Azure AI Search documentation](https://learn.microsoft.com/azure/search/)
 - [Azure Front Door documentation](https://learn.microsoft.com/azure/frontdoor/)
 - [Azure Functions documentation](https://learn.microsoft.com/azure/azure-functions/)
-- [BCDR for Azure AI Search](https://learn.microsoft.com/azure/search/search-performance-optimization#geo-redundancy)
+- [Reliability in Azure AI Search](https://learn.microsoft.com/azure/reliability/reliability-ai-search)
 - [Samples browser on Microsoft Learn](https://learn.microsoft.com/samples/browse/)
 
 ## Troubleshooting
@@ -352,7 +352,7 @@ Front Door costs vary based on data transfer and request volume. Cosmos DB serve
 
 ### Search returns no results
 
-**Solution:** Wait 2-3 minutes after deployment for indexing to complete.
+**Solution:** Wait 2–3 minutes after deployment for indexing to complete.
 
 If indexes weren't created during deployment, manually configure them:
 
