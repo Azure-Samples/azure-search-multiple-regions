@@ -1,18 +1,33 @@
-# Multi-region deployment of Azure AI Search with Azure Front Door for business continuity and disaster recovery
+---
+page_type: sample
+languages:
+  - bicep
+name: Deploy Azure AI Search across multiple regions
+description: "This sample demonstrates automatic failover for Azure AI Search using Azure Front Door with priority-based routing."
+products:
+  - azure
+  - azure-cognitive-search
+  - azure-ai-search
+urlFragment: multiple-region-search
+---
+
+# Multi-region deployment of Azure AI Search with Azure Front Door
 
 This sample demonstrates automatic failover for Azure AI Search using Azure Front Door with priority-based routing.
 
 The deployment creates Azure AI Search services in two regions with Azure Functions APIs and automatic failover capabilities.
+
+Multi-region deployments provide high availability and disaster recovery for Azure AI Search. By deploying search services in multiple regions and using Azure Front Door for global load balancing, you can ensure that your search application remains available even if one region experiences an outage.
 
 Learn more: [Multi-region deployments in Azure AI Search](https://learn.microsoft.com/azure/search/search-multi-region?tabs=push-apis%2Capplication-gateway)
 
 ## Prerequisites
 
 - [Azure subscription](https://azure.microsoft.com/free/)
-- Permission to create resources in Azure
+- Permission to create resources in Azure (See [Understand the different roles in Azure](/azure/role-based-access-control/rbac-and-directory-admin-roles))
 - [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
 - [PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) 7.0 or later
-- [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep).
+- [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep)
 
 ## Overview
 
@@ -59,19 +74,17 @@ Uses [Cosmos DB change feed](https://learn.microsoft.com/azure/cosmos-db/change-
 
 To run this sample, you must first complete some basic setup steps to prepare your Azure environment and deploy the resources.
 
-1. Install the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) or another supported tool for Bicep deployment.
+1. Using the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) or another supported tool for Bicep deployment, clone or download this sample repository.
 
-2. Clone or download this sample repository.
+2. Extract contents if the download is a zip file. Make sure the files are read-write.
 
-3. Extract contents if the download is a zip file. Make sure the files are read-write.
-
-4. Sign in to your Azure account:
+3. Sign in to your Azure account:
 
    ```powershell
    az login
    ```
 
-5. Create a resource group to contain all of the resources:
+4. Create a resource group to contain all of the resources:
 
    ```powershell
    az group create --name demoResourceGroup --location westus2
@@ -101,16 +114,16 @@ From the command line, run the deployment script with change feed synchronizatio
 
 ### What gets deployed
 
-The deployment script will:
+The deployment script:
 
-1. Create Azure AI Search services in two regions (westus2 and westus3)
-2. Deploy Azure Functions with automatic code deployment
-3. Configure Azure Front Door with priority-based routing
-4. Deploy Cosmos DB NoSQL (serverless) for data storage
-5. Populate Cosmos DB with 50 sample product documents
-6. Configure synchronization (indexers or change feed based on selection)
-7. Configure the frontend with the Front Door URL
-8. Save configuration for testing scripts
+1. Creates Azure AI Search services in two regions (westus2 and westus3).
+2. Deploys Azure Functions with automatic code deployment.
+3. Configures Azure Front Door with priority-based routing.
+4. Deploys Cosmos DB NoSQL (serverless) for data storage.
+5. Populates Cosmos DB with 50 sample product documents.
+6. Configures synchronization (indexers or change feed based on selection).
+7. Configures the frontend with the Front Door URL.
+8. Saves configuration for testing scripts.
 
 The deployment takes approximately 15-20 minutes to complete.
 
