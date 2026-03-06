@@ -354,7 +354,7 @@ Front Door costs vary based on data transfer and request volume. Cosmos DB serve
 
 **Solution:** Wait 2-3 minutes after deployment for indexing to complete.
 
-If indexes were not created during deployment, manually configure them:
+If indexes weren't created during deployment, manually configure them:
 
 ```powershell
 .\scripts\configure-search.ps1
