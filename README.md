@@ -399,7 +399,7 @@ This packages and deploys the latest function code to both the primary (westus2)
      --resource-group <rg-name>
    ```
 
-2. Verify function apps are running in Azure Portal
+2. Verify function apps are running in the Azure portal
 
 3. Test health endpoint directly: `https://<function-app>.azurewebsites.net/api/health`
 
