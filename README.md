@@ -31,7 +31,7 @@ Learn more: [Multi-region deployments in Azure AI Search](https://learn.microsof
 
 ## Overview
 
-The templates create two billable [Azure AI Search](https://learn.microsoft.com/azure/search/search-create-service-portal) resources (Basic tier) in different regions. **You can't use the free tier for this sample.*
+The Bicep templates create two billable [Azure AI Search](https://learn.microsoft.com/azure/search/search-create-service-portal) services (Basic tier) in different regions. *You can't use the free tier for this sample.*
 
 The primary search service (westus2) handles indexing and query workloads under normal conditions. The secondary search service (westus3) serves as a failover copy. Azure Front Door monitors both regions with health probes and automatically routes traffic to the secondary region if the primary becomes unavailable.
 
@@ -41,7 +41,7 @@ This sample provides two methods to keep search indexes synchronized across regi
 
 #### Option 1: Scheduled indexers (default)
 
-Uses Azure AI Search [indexers](https://learn.microsoft.com/azure/search/search-indexer-overview) to pull data from Cosmos DB NoSQL on a schedule. Both search services configure identical indexers that run every 5 minutes, pointing to the same Cosmos DB database. This is the simpler approach and works well when 5-minute synchronization latency is acceptable.
+Uses Azure AI Search [indexers](https://learn.microsoft.com/azure/search/search-indexer-overview) to pull data from Azure Cosmos DB for NoSQL on a schedule. Both search services configure identical indexers that run every five minutes, pointing to the same Cosmos DB database. This is the simpler approach and works well when five-minute synchronization latency is acceptable.
 
 **Pros:**
 
@@ -51,12 +51,12 @@ Uses Azure AI Search [indexers](https://learn.microsoft.com/azure/search/search-
 
 **Cons:**
 
-- 5-minute minimum sync interval
+- Five-minute minimum sync interval
 - Slight delay in data availability
 
 #### Option 2: Change feed (real-time)
 
-Uses [Cosmos DB change feed](https://learn.microsoft.com/azure/cosmos-db/change-feed) with Azure Functions to push updates to search indexes in real-time. When documents change in Cosmos DB, Azure Functions are triggered immediately and push the updates to both search services. This provides near-instantaneous synchronization.
+Uses [Cosmos DB change feed](https://learn.microsoft.com/azure/cosmos-db/change-feed) with Azure Functions to push updates to both search indexes in real time. When documents change in Cosmos DB, the change feed triggers Azure Functions that immediately update both search services. This provides near-instantaneous synchronization.
 
 **Pros:**
 
@@ -76,17 +76,17 @@ To run this sample, you must first complete some basic setup steps to prepare yo
 
 1. Using the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) or another supported tool for Bicep deployment, clone or download this sample repository.
 
-2. Extract contents if the download is a zip file. Make sure the files are read-write.
+2. Extract contents if the download is a zip file. Make sure the files are read-write. Ensure that you navigate to the project directory: `cd azure-search-multiple-regions`.
 
 3. Sign in to your Azure account:
 
-   ```powershell
+   ```azcli
    az login
    ```
 
 4. Create a resource group to contain all of the resources:
 
-   ```powershell
+   ```azcli
    az group create --name demoResourceGroup --location westus2
    ```
 
@@ -119,7 +119,7 @@ The deployment script:
 1. Creates Azure AI Search services in two regions (westus2 and westus3).
 2. Deploys Azure Functions with automatic code deployment.
 3. Configures Azure Front Door with priority-based routing.
-4. Deploys Cosmos DB NoSQL (serverless) for data storage.
+4. Deploys Cosmos DB for NoSQL (serverless) for data storage.
 5. Populates Cosmos DB with 50 sample product documents.
 6. Configures synchronization (indexers or change feed based on selection).
 7. Configures the frontend with the Front Door URL.
@@ -127,7 +127,7 @@ The deployment script:
 
 The deployment takes approximately 15-20 minutes to complete.
 
-> Front Door may require an additional 15-30 minutes after provisioning to fully propagate to the global edge network.
+> After provisioning, Front Door might require an additional 15–30 minutes to fully propagate to the global edge network.
 
 ### Test the deployment
 
@@ -141,12 +141,12 @@ Simulate a primary region failure by making the search service unavailable:
 .\test-failover.ps1
 ```
 
-This script will:
+This script:
 
-1. Disable public network access on the primary search service (simulates regional outage)
-2. Wait for Front Door health probes to detect the failure (~90 seconds)
-3. Test routing distribution (15 requests)
-4. Display a formatted status summary
+1. Disables public network access on the primary search service (simulates regional outage).
+2. Waits for Front Door health probes to detect the failure (~90 seconds).
+3. Tests routing distribution (15 requests).
+4. Displays a formatted status summary.
 
 **What happens:**
 
@@ -185,7 +185,7 @@ This sample creates multiple Azure resources, several of which are billable. Aft
 
 Alternatively, delete the resource group manually:
 
-```powershell
+```azcli
 az group delete --name demoResourceGroup --yes --no-wait
 ```
 
@@ -245,7 +245,7 @@ The deployment uses the following default parameters. To customize, edit [bicep/
 | `searchSku` | basic | Azure AI Search service tier |
 | `syncMethod` | indexer | Synchronization method: `indexer` or `changefeed` |
 
-> **[!] Important:** The `projectName` must be 10 characters or less to ensure generated resource names stay within Azure naming limits. Storage account names automatically use region abbreviations to accommodate longer region names.
+> **Important:** The `projectName` must be 10 characters or less to ensure generated resource names stay within Azure naming limits. Storage account names automatically use region abbreviations to accommodate longer region names.
 
 ### Front Door configuration
 
@@ -260,11 +260,13 @@ The deployment uses the following default parameters. To customize, edit [bicep/
 - **API:** NoSQL
 - **Consistency level:** Session
 - **Billing mode:** Serverless
-- **Database:** productsdb
-- **Container:** products (50 sample documents)
-- **Partition key:** /id
+- **Database:** `productsdb`
+- **Container:** `products` (50 sample documents)
+- **Partition key:** `/id`
 
 ## API Reference
+
+All API requests should be made to the Front Door endpoint to ensure proper routing and failover.
 
 ### Search API
 
@@ -280,6 +282,7 @@ Query the search index through the Front Door endpoint.
 - `top` (optional) - Number of results to return. Default: 10
 
 **Response:**
+
 ```json
 {
   "results": [
@@ -331,14 +334,6 @@ Front Door costs vary based on data transfer and request volume. Cosmos DB serve
 
 > *Cosmos DB estimate based on minimal read/write operations for testing. Production workloads will vary.
 
-## Resources
-
-- [Azure AI Search documentation](https://learn.microsoft.com/azure/search/)
-- [Azure Front Door documentation](https://learn.microsoft.com/azure/frontdoor/)
-- [Azure Functions documentation](https://learn.microsoft.com/azure/azure-functions/)
-- [BCDR for Azure AI Search](https://learn.microsoft.com/azure/search/search-performance-optimization#geo-redundancy)
-- [Samples browser on Microsoft Learn](https://learn.microsoft.com/samples/browse/)
-
 ## Troubleshooting
 
 ### Front Door returns "Page not found"
@@ -351,7 +346,7 @@ Front Door costs vary based on data transfer and request volume. Cosmos DB serve
 2. Access the endpoint multiple times to trigger deployment
 3. Check deployment status:
 
-   ```powershell
+   ```azcli
    az afd endpoint show \
      --endpoint-name <endpoint-name> \
      --profile-name <profile-name> \
@@ -397,7 +392,7 @@ Use `.\scripts\redeploy-functions.ps1` instead of the full `.\deploy.ps1` when:
 .\scripts\redeploy-functions.ps1
 ```
 
-This packages and deploys the latest function code to both the primary (westus2) and secondary (westus3) function apps. It does not modify any infrastructure resources.
+This packages and deploys the latest function code to both the primary (westus2) and secondary (westus3) function apps. It doesn't modify any infrastructure resources.
 
 ### Front Door not routing correctly
 
@@ -405,7 +400,7 @@ This packages and deploys the latest function code to both the primary (westus2)
 
 1. Check origin health:
 
-   ```powershell
+   ```azcli
    az afd origin list \
      --origin-group-name function-origin-group \
      --profile-name <profile-name> \
@@ -433,3 +428,11 @@ This packages and deploys the latest function code to both the primary (westus2)
    ```powershell
    .\deploy.ps1 -ResourceGroupName "<your-resource-group>"
    ```
+
+## Resources
+
+- [Azure AI Search documentation](https://learn.microsoft.com/azure/search/)
+- [Azure Front Door documentation](https://learn.microsoft.com/azure/frontdoor/)
+- [Azure Functions documentation](https://learn.microsoft.com/azure/azure-functions/)
+- [BCDR for Azure AI Search](https://learn.microsoft.com/azure/search/search-performance-optimization#geo-redundancy)
+- [Samples browser on Microsoft Learn](https://learn.microsoft.com/samples/browse/)
