@@ -106,7 +106,7 @@ The deployment script will:
 1. Create Azure AI Search services in two regions (westus2 and westus3)
 2. Deploy Azure Functions with automatic code deployment
 3. Configure Azure Front Door with priority-based routing
-4. Deploy Cosmos DB NoSQL (serverless) for data storage
+4. Deploy Cosmos DB for NoSQL (serverless) for data storage
 5. Populate Cosmos DB with 50 sample product documents
 6. Configure synchronization (indexers or change feed based on selection)
 7. Configure the frontend with the Front Door URL
