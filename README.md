@@ -93,7 +93,7 @@ Or explicitly specify the indexer method:
 
 ### Deploy with change feed (Option 2)
 
-From the command line, run the deployment script with change feed synchronization:
+Run the deployment script with change feed synchronization:
 
 ```powershell
 .\deploy.ps1 -ResourceGroupName "demoResourceGroup" -SyncMethod "changefeed"
