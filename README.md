@@ -224,7 +224,7 @@ Azure Front Door provides global load balancing and automatic failover for the m
 
 The deployment uses the following default parameters. To customize, edit [bicep/main.parameters.json](bicep/main.parameters.json).
 
-| Parameter | Default Value | Description |
+| Parameter | Default value | Description |
 |-----------|--------------|-------------|
 | `projectName` | bcdrtest | Base name for resources - **Must be 3-10 characters** (lowercase letters/numbers only). |
 | `primaryRegion` | westus2 | Primary Azure region. Any valid Azure region name is supported. |
