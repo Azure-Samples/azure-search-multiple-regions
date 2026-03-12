@@ -28,7 +28,7 @@ resource indexerDeployment 'Microsoft.Resources/deploymentScripts@2020-10-01' = 
     azPowerShellVersion: '11.0'
     forceUpdateTag: deploymentTime
     retentionInterval: 'P1D'
-    timeout: 'PT30M'
+    timeout: 'PT45M'
     arguments: '-PrimarySearchName "${primarySearchName}" -SecondarySearchName "${secondarySearchName}" -CosmosEndpoint "${cosmosAccount.properties.documentEndpoint}" -CosmosKey "${cosmosAccount.listKeys().primaryMasterKey}" -DatabaseName "${cosmosDatabaseName}" -ContainerName "${cosmosContainerName}"'
     environmentVariables: [
       {
@@ -175,6 +175,10 @@ resource indexerDeployment 'Microsoft.Resources/deploymentScripts@2020-10-01' = 
             connectionString = "AccountEndpoint=$CosmosEndpoint;AccountKey=$CosmosKey;Database=$DatabaseName"
           }
           container = @{ name = $ContainerName }
+          dataChangeDetectionPolicy = @{
+            "@odata.type" = "#Microsoft.Azure.Search.HighWaterMarkChangeDetectionPolicy"
+            highWaterMarkColumnName = "_ts"
+          }
         } | ConvertTo-Json -Depth 10
         
         Invoke-SearchPost -SearchService $ServiceName -ApiKey $ApiKey -Collection "datasources" -Body $dsBody | Out-Null

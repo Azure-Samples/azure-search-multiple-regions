@@ -239,6 +239,7 @@ module primaryFunctionCodeDeploy 'modules/function-code-deploy.bicep' = {
     location: primaryRegion
     resourceGroupName: resourceGroup().name
     scriptIdentity: 'primary'
+    syncMethod: syncMethod
   }
   dependsOn: [
     primaryFunction
@@ -255,6 +256,7 @@ module secondaryFunctionCodeDeploy 'modules/function-code-deploy.bicep' = {
     location: secondaryRegion
     resourceGroupName: resourceGroup().name
     scriptIdentity: 'secondary'
+    syncMethod: syncMethod
   }
   dependsOn: [
     secondaryFunction
@@ -278,3 +280,5 @@ output secondaryFunctionName string = secondaryFunctionName
 output frontendUrl string = 'file:///${replace(deployment().name, '\\', '/')}/frontend/index.html'
 output cosmosAccountName string = cosmosDb.outputs.cosmosAccountName
 output syncMethod string = syncMethod
+output primaryRegion string = primaryRegion
+output secondaryRegion string = secondaryRegion

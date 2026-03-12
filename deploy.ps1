@@ -27,9 +27,7 @@ Write-Host ""
 Write-Host "Sync Method: $SyncMethod" -ForegroundColor Yellow
 if ($SyncMethod -eq "indexer") {
     Write-Host "  -> Scheduled indexers will sync data every 5 minutes" -ForegroundColor Gray
-    Write-Host "  -> Scheduled indexers will sync data every 5 minutes" -ForegroundColor Gray
 } else {
-    Write-Host "  -> Change feed will sync data in real-time" -ForegroundColor Gray
     Write-Host "  -> Change feed will sync data in real-time" -ForegroundColor Gray
 }
 Write-Host ""
@@ -43,8 +41,6 @@ if (-not $account) {
     $account = az account show | ConvertFrom-Json
 }
 
-Write-Host "[OK] Logged in as: $($account.user.name)" -ForegroundColor Green
-Write-Host "[OK] Subscription: $($account.name) ($($account.id))" -ForegroundColor Green
 Write-Host "[OK] Logged in as: $($account.user.name)" -ForegroundColor Green
 Write-Host "[OK] Subscription: $($account.name) ($($account.id))" -ForegroundColor Green
 Write-Host ""
@@ -309,8 +305,8 @@ $config = @{
     frontDoorEndpoint = $outputs.frontDoorEndpoint.value
     frontDoorProfileName = $outputs.frontDoorProfileName.value
     frontDoorEndpointName = $outputs.frontDoorEndpointName.value
-    primaryRegion = "westus2"
-    secondaryRegion = "westus3"
+    primaryRegion = $outputs.primaryRegion.value
+    secondaryRegion = $outputs.secondaryRegion.value
     syncMethod = $SyncMethod
     cosmosAccountName = $outputs.cosmosAccountName.value
 }
@@ -329,7 +325,6 @@ if (Test-Path $htmlPath) {
     $updatedContent = $htmlContent -replace "const TRAFFIC_MANAGER_URL = '[^']*';", "const TRAFFIC_MANAGER_URL = '$frontDoorUrl';"
     Set-Content -Path $htmlPath -Value $updatedContent -NoNewline
     
-    Write-Host "[OK] Frontend configured with Front Door endpoint" -ForegroundColor Green
     Write-Host "[OK] Frontend configured with Front Door endpoint" -ForegroundColor Green
 } else {
     Write-Host "[!] Frontend file not found: $htmlPath" -ForegroundColor Yellow

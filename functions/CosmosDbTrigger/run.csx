@@ -32,8 +32,7 @@ public static async Task Run(IReadOnlyList<Document> documents, ILogger log)
                 name = doc.GetPropertyValue<string>("name"),
                 description = doc.GetPropertyValue<string>("description"),
                 category = doc.GetPropertyValue<string>("category"),
-                price = doc.GetPropertyValue<double>("price"),
-                __key = doc.GetPropertyValue<string>("id") // Use id as the document key
+                price = doc.GetPropertyValue<double>("price")
             };
             searchDocuments.Add(searchDoc);
         }
@@ -58,7 +57,7 @@ private static async Task UpdateSearchIndex(string searchService, string indexNa
 {
     try
     {
-        var url = $"https://{searchService}.search.windows.net/indexes/{indexName}/docs/index?api-version=2023-11-01";
+        var url = $"https://{searchService}.search.windows.net/indexes/{indexName}/docs/index?api-version=2025-09-01";
         
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Add("api-key", apiKey);

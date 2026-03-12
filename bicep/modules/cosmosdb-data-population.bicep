@@ -15,7 +15,7 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   properties: {
     azPowerShellVersion: '11.0'
     retentionInterval: 'P1D'
-    timeout: 'PT30M'
+    timeout: 'PT45M'
     arguments: '-CosmosAccountName "${cosmosAccountName}" -DatabaseName "${cosmosDatabaseName}" -ContainerName "${cosmosContainerName}"'
     environmentVariables: [
       {
@@ -54,7 +54,44 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
       }
       
       Add-Type -AssemblyName System.Web
-      
+
+      # Wait for Cosmos DB data plane to become reachable before any operations
+      Write-Host "Waiting for Cosmos DB data plane to become ready..."
+      $waitResourceLink = "dbs/$DatabaseName/colls/$ContainerName"
+      $waitElapsed = 0
+      $waitMaxSeconds = 300
+      $cosmosReady = $false
+      while ($waitElapsed -lt $waitMaxSeconds) {
+        try {
+          $waitDateTime = [DateTime]::UtcNow.ToString("r")
+          $waitAuthToken = New-CosmosDbAuthorizationToken -Verb "GET" -ResourceType "docs" -ResourceLink $waitResourceLink -Date $waitDateTime -Key $cosmosKey
+          $waitHeaders = @{
+            "authorization" = $waitAuthToken
+            "x-ms-date" = $waitDateTime
+            "x-ms-version" = "2018-12-31"
+            "x-ms-max-item-count" = "1"
+          }
+          $waitR = Invoke-WebRequest -Uri "${cosmosEndpoint}${waitResourceLink}/docs" -Method Get -Headers $waitHeaders -TimeoutSec 10 -SkipHttpErrorCheck
+          $waitSc = $waitR.StatusCode
+          if ($waitSc -eq 200) {
+            Write-Host "  [OK] Cosmos DB data plane ready (${waitElapsed}s)" -ForegroundColor Green
+            $cosmosReady = $true
+            break
+          }
+          if ($waitSc -eq 401 -or $waitSc -eq 403) {
+            throw "Cosmos DB returned HTTP $waitSc - check access key"
+          }
+          Write-Host "  HTTP $waitSc (${waitElapsed}s)... retrying in 15s"
+        } catch {
+          Write-Host "  Connection error (${waitElapsed}s): $($_.Exception.Message) - retrying in 15s"
+        }
+        Start-Sleep -Seconds 15
+        $waitElapsed += 15
+      }
+      if (-not $cosmosReady) {
+        throw "Cosmos DB data plane did not become ready after ${waitMaxSeconds}s"
+      }
+
       # Check if container already has documents
       $resourceLink = "dbs/$DatabaseName/colls/$ContainerName"
       $dateTime = [DateTime]::UtcNow.ToString("r")

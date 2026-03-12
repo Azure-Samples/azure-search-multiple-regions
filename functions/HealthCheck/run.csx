@@ -18,7 +18,7 @@ public static async Task<IActionResult> Run(HttpRequest req, ILogger log)
         // Check if search service is accessible
         using (var httpClient = new HttpClient())
         {
-            string healthUrl = $"{searchServiceEndpoint}/indexes/{searchIndexName}?api-version=2023-11-01";
+            string healthUrl = $"{searchServiceEndpoint}/indexes/{searchIndexName}?api-version=2025-09-01";
             httpClient.DefaultRequestHeaders.Add("api-key", searchServiceKey);
             
             var response = await httpClient.GetAsync(healthUrl);

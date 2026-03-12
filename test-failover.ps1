@@ -29,6 +29,8 @@ $secondarySearchName = $config.secondarySearchName
 $frontDoorEndpoint = $config.frontDoorEndpoint
 $frontDoorProfileName = $config.frontDoorProfileName
 $frontDoorEndpointName = $config.frontDoorEndpointName
+$primaryRegion = $config.primaryRegion
+$secondaryRegion = $config.secondaryRegion
 
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
 Write-Host "|  TEST CONFIGURATION                                                 |" -ForegroundColor White
@@ -65,30 +67,47 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "[OK] Primary search service set to private (network isolated)" -ForegroundColor Green
-Write-Host "[OK] Primary search service set to private (network isolated)" -ForegroundColor Green
 Write-Host "  Functions can no longer reach the primary search service" -ForegroundColor Gray
-Write-Host "  Waiting 30 seconds for change to propagate..." -ForegroundColor Gray
-Start-Sleep -Seconds 30
 Write-Host ""
 
-# Step 2: Wait for health probe detection
+# Step 2: Poll Front Door until it routes to secondary (max 120s)
 Write-Host "STEP 2: Waiting for Front Door health probes to detect failure..." -ForegroundColor Yellow
 Write-Host "  Health probe interval: 30 seconds" -ForegroundColor Gray
 Write-Host "  Failure threshold: 3 consecutive failures" -ForegroundColor Gray
-Write-Host "  Expected detection time: ~90 seconds" -ForegroundColor Gray
+Write-Host "  Polling every 10 seconds (exits as soon as failover is detected)" -ForegroundColor Gray
 Write-Host ""
 
-$totalWait = 90
+$maxWait = 120
 $interval = 10
-for ($i = 1; $i -le ($totalWait / $interval); $i++) {
-    $elapsed = $i * $interval
-    $percentage = [math]::Round(($elapsed / $totalWait) * 100)
-    $bar = "#" * [math]::Round($percentage / 5)
-    $bar = "#" * [math]::Round($percentage / 5)
-    $space = " " * (20 - [math]::Round($percentage / 5))
-    Write-Host "  [$bar$space] ${percentage}% - ${elapsed}s / ${totalWait}s" -ForegroundColor Cyan
+$elapsed = 0
+$failoverDetected = $false
+$ProgressPreference = 'SilentlyContinue'
+
+while ($elapsed -lt $maxWait) {
     Start-Sleep -Seconds $interval
+    $elapsed += $interval
+    $probe = $null
+    try {
+        $probe = Invoke-RestMethod -Uri "$frontDoorEndpoint/api/health" -TimeoutSec 8 -ErrorAction Stop
+    } catch {
+        # Expected while primary is unreachable - suppress all output
+    }
+
+    if ($probe -and $probe.region -eq $secondaryRegion) {
+        Write-Host "  [OK] Failover detected after ${elapsed}s - routing to $secondaryRegion" -ForegroundColor Green
+        $failoverDetected = $true
+        break
+    } elseif ($probe) {
+        Write-Host "  [${elapsed}s] Routing to $($probe.region) - waiting for failover..." -ForegroundColor Cyan
+    } else {
+        Write-Host "  [${elapsed}s] Waiting for Front Door to detect failure..." -ForegroundColor Cyan
+    }
 }
+
+if (-not $failoverDetected) {
+    Write-Host "  [!] Failover not yet detected after ${maxWait}s - proceeding to routing test anyway" -ForegroundColor Yellow
+}
+$ProgressPreference = 'Continue'
 Write-Host ""
 
 # Step 3: Verify search service accessibility
@@ -124,15 +143,13 @@ Write-Host ""
 Write-Host "  Testing PRIMARY endpoint..." -ForegroundColor Gray
 try {
     $primaryResponse = Invoke-RestMethod -Uri "$frontDoorEndpoint/api/health" -TimeoutSec 10 -ErrorAction Stop
-    if ($primaryResponse.region -eq "eastus2") {
+    if ($primaryResponse.region -eq $primaryRegion) {
         Write-Host "  [!] Primary is responding but may report search unavailable" -ForegroundColor Yellow
         Write-Host "    Response: $($primaryResponse | ConvertTo-Json -Compress)" -ForegroundColor Gray
     } else {
         Write-Host "  [OK] Already routed to secondary" -ForegroundColor Green
-        Write-Host "  [OK] Already routed to secondary" -ForegroundColor Green
     }
 } catch {
-    Write-Host "  [OK] Primary is unavailable (expected - search service unreachable)" -ForegroundColor Green
     Write-Host "  [OK] Primary is unavailable (expected - search service unreachable)" -ForegroundColor Green
     Write-Host "    Error: $($_.Exception.Message)" -ForegroundColor Gray
 }
@@ -142,25 +159,22 @@ Write-Host ""
 Write-Host "STEP 5: Testing Front Door routing (15 requests)..." -ForegroundColor Yellow
 Write-Host ""
 
-$eastus2Count = 0
-$westus2Count = 0
+$primaryCount = 0
+$secondaryCount = 0
 $errorCount = 0
 
 1..15 | ForEach-Object {
     try {
         $response = Invoke-RestMethod -Uri "$frontDoorEndpoint/api/health" -ErrorAction Stop
-        if ($response.region -eq "eastus2") {
-            $eastus2Count++
-            Write-Host "  [$_] -> eastus2 (PRIMARY)" -ForegroundColor Red
-            Write-Host "  [$_] -> eastus2 (PRIMARY)" -ForegroundColor Red
-        } elseif ($response.region -eq "westus2") {
-            $westus2Count++
-            Write-Host "  [$_] -> westus2 (SECONDARY)" -ForegroundColor Green
-            Write-Host "  [$_] -> westus2 (SECONDARY)" -ForegroundColor Green
+        if ($response.region -eq $primaryRegion) {
+            $primaryCount++
+            Write-Host "  [$_] -> $primaryRegion (PRIMARY)" -ForegroundColor Red
+        } elseif ($response.region -eq $secondaryRegion) {
+            $secondaryCount++
+            Write-Host "  [$_] -> $secondaryRegion (SECONDARY)" -ForegroundColor Green
         }
     } catch {
         $errorCount++
-        Write-Host "  [$_] -> ERROR: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host "  [$_] -> ERROR: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
@@ -178,35 +192,35 @@ Write-Host ""
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
 Write-Host "|  SEARCH SERVICE STATUS                                              |" -ForegroundColor White
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
-Write-Host "|  Primary (eastus2)   : $(if ($primarySearchStatus -eq "Disabled") { "PRIVATE (Network Isolated)".PadRight(44) } else { $primarySearchStatus.PadRight(44) })|" -ForegroundColor White
-Write-Host "|  Secondary (westus2) : $(if ($secondarySearchStatus -eq "Enabled") { "PUBLIC (Available)".PadRight(44) } else { $secondarySearchStatus.PadRight(44) })|" -ForegroundColor White
+Write-Host "|  Primary ($primaryRegion) : $(if ($primarySearchStatus -eq "Disabled") { "PRIVATE (Network Isolated)".PadRight(44) } else { $primarySearchStatus.PadRight(44) })|" -ForegroundColor White
+Write-Host "|  Secondary ($secondaryRegion) : $(if ($secondarySearchStatus -eq "Enabled") { "PUBLIC (Available)".PadRight(44) } else { $secondarySearchStatus.PadRight(44) })|" -ForegroundColor White
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
 Write-Host "|  SEARCH SERVICE STATUS                                              |" -ForegroundColor White
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
-Write-Host "|  Primary (eastus2)   : $(if ($primarySearchStatus -eq "Disabled") { "PRIVATE (Network Isolated)".PadRight(44) } else { $primarySearchStatus.PadRight(44) })|" -ForegroundColor White
-Write-Host "|  Secondary (westus2) : $(if ($secondarySearchStatus -eq "Enabled") { "PUBLIC (Available)".PadRight(44) } else { $secondarySearchStatus.PadRight(44) })|" -ForegroundColor White
+Write-Host "|  Primary ($primaryRegion) : $(if ($primarySearchStatus -eq "Disabled") { "PRIVATE (Network Isolated)".PadRight(44) } else { $primarySearchStatus.PadRight(44) })|" -ForegroundColor White
+Write-Host "|  Secondary ($secondaryRegion) : $(if ($secondarySearchStatus -eq "Enabled") { "PUBLIC (Available)".PadRight(44) } else { $secondarySearchStatus.PadRight(44) })|" -ForegroundColor White
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
 Write-Host ""
 
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
 Write-Host "|  ROUTING DISTRIBUTION (15 requests)                                 |" -ForegroundColor White
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
-Write-Host "|  eastus2 (PRIMARY)   : $($eastus2Count.ToString().PadLeft(2)) requests ($([math]::Round($eastus2Count/15*100)).ToString().PadLeft(3))%)                          |" -ForegroundColor $(if ($eastus2Count -eq 0) { "White" } else { "Yellow" })
-Write-Host "|  westus2 (SECONDARY) : $($westus2Count.ToString().PadLeft(2)) requests ($([math]::Round($westus2Count/15*100)).ToString().PadLeft(3))%)                          |" -ForegroundColor $(if ($westus2Count -eq 15) { "Green" } else { "Yellow" })
+Write-Host "|  $primaryRegion (PRIMARY)   : $($primaryCount.ToString().PadLeft(2)) requests ($([math]::Round($primaryCount/15*100)).ToString().PadLeft(3))%)                          |" -ForegroundColor $(if ($primaryCount -eq 0) { "White" } else { "Yellow" })
+Write-Host "|  $secondaryRegion (SECONDARY) : $($secondaryCount.ToString().PadLeft(2)) requests ($([math]::Round($secondaryCount/15*100)).ToString().PadLeft(3))%)                          |" -ForegroundColor $(if ($secondaryCount -eq 15) { "Green" } else { "Yellow" })
 Write-Host "|  Errors              : $($errorCount.ToString().PadLeft(2)) requests ($([math]::Round($errorCount/15*100)).ToString().PadLeft(3))%)                          |" -ForegroundColor $(if ($errorCount -eq 0) { "White" } else { "Red" })
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
 Write-Host "|  ROUTING DISTRIBUTION (15 requests)                                 |" -ForegroundColor White
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
-Write-Host "|  eastus2 (PRIMARY)   : $($eastus2Count.ToString().PadLeft(2)) requests ($([math]::Round($eastus2Count/15*100)).ToString().PadLeft(3))%)                          |" -ForegroundColor $(if ($eastus2Count -eq 0) { "White" } else { "Yellow" })
-Write-Host "|  westus2 (SECONDARY) : $($westus2Count.ToString().PadLeft(2)) requests ($([math]::Round($westus2Count/15*100)).ToString().PadLeft(3))%)                          |" -ForegroundColor $(if ($westus2Count -eq 15) { "Green" } else { "Yellow" })
+Write-Host "|  $primaryRegion (PRIMARY)   : $($primaryCount.ToString().PadLeft(2)) requests ($([math]::Round($primaryCount/15*100)).ToString().PadLeft(3))%)                          |" -ForegroundColor $(if ($primaryCount -eq 0) { "White" } else { "Yellow" })
+Write-Host "|  $secondaryRegion (SECONDARY) : $($secondaryCount.ToString().PadLeft(2)) requests ($([math]::Round($secondaryCount/15*100)).ToString().PadLeft(3))%)                          |" -ForegroundColor $(if ($secondaryCount -eq 15) { "Green" } else { "Yellow" })
 Write-Host "|  Errors              : $($errorCount.ToString().PadLeft(2)) requests ($([math]::Round($errorCount/15*100)).ToString().PadLeft(3))%)                          |" -ForegroundColor $(if ($errorCount -eq 0) { "White" } else { "Red" })
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
 Write-Host ""
 
 # Determine success
-$failoverSuccess = ($westus2Count -ge 14 -and $eastus2Count -le 1 -and $errorCount -eq 0)
+$failoverSuccess = ($secondaryCount -ge 14 -and $primaryCount -le 1 -and $errorCount -eq 0)
 
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
 Write-Host "+---------------------------------------------------------------------+" -ForegroundColor White
@@ -226,7 +240,7 @@ if ($failoverSuccess) {
     Write-Host "|  [OK] Primary search service made private (network isolated)          |" -ForegroundColor White
     Write-Host "|  [OK] Function health checks failing (can't reach search)             |" -ForegroundColor White
     Write-Host "|  [OK] Front Door detected primary failure                             |" -ForegroundColor White
-    Write-Host "|  [OK] Traffic automatically routed to secondary (westus2)             |" -ForegroundColor White
+    Write-Host "|  [OK] Traffic automatically routed to secondary ($secondaryRegion)             |" -ForegroundColor White
     Write-Host "|  [OK] Zero errors during failover                                     |" -ForegroundColor White
     Write-Host "|                                                                     |" -ForegroundColor White
     Write-Host "|  CONCLUSION:                                                        |" -ForegroundColor White
@@ -236,7 +250,7 @@ if ($failoverSuccess) {
     Write-Host "|  [OK] Primary search service made private (network isolated)          |" -ForegroundColor White
     Write-Host "|  [OK] Function health checks failing (can't reach search)             |" -ForegroundColor White
     Write-Host "|  [OK] Front Door detected primary failure                             |" -ForegroundColor White
-    Write-Host "|  [OK] Traffic automatically routed to secondary (westus2)             |" -ForegroundColor White
+    Write-Host "|  [OK] Traffic automatically routed to secondary ($secondaryRegion)             |" -ForegroundColor White
     Write-Host "|  [OK] Zero errors during failover                                     |" -ForegroundColor White
     Write-Host "|                                                                     |" -ForegroundColor White
     Write-Host "|  CONCLUSION:                                                        |" -ForegroundColor White

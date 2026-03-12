@@ -44,7 +44,7 @@ public static async Task<IActionResult> Run(HttpRequest req, ILogger log)
     try
     {
         // Build search request
-        string searchUrl = $"{searchServiceEndpoint}/indexes/{searchIndexName}/docs/search?api-version=2023-11-01";
+        string searchUrl = $"{searchServiceEndpoint}/indexes/{searchIndexName}/docs/search?api-version=2025-09-01";
         
         var searchRequest = new
         {

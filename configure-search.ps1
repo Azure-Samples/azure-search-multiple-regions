@@ -45,9 +45,8 @@ $cosmosKey = az cosmosdb keys list `
     --name $config.cosmosAccountName `
     --query primaryMasterKey -o tsv
 
-$apiVersion = "2024-07-01"
+$apiVersion = "2025-09-01"
 
-Write-Host "[OK] Retrieved credentials" -ForegroundColor Green
 Write-Host "[OK] Retrieved credentials" -ForegroundColor Green
 Write-Host ""
 
@@ -133,14 +132,11 @@ Write-Host "Configuring primary search service: $($config.primarySearchName)" -F
 try {
     Invoke-SearchApi -SearchService $config.primarySearchName -ApiKey $primaryKey -Method "PUT" -Resource "datasources/cosmosdb-datasource" -Body $dataSource | Out-Null
     Write-Host "  [OK] Created data source" -ForegroundColor Green
-    Write-Host "  [OK] Created data source" -ForegroundColor Green
     
     Invoke-SearchApi -SearchService $config.primarySearchName -ApiKey $primaryKey -Method "PUT" -Resource "indexes/products-index" -Body $index | Out-Null
     Write-Host "  [OK] Created index" -ForegroundColor Green
-    Write-Host "  [OK] Created index" -ForegroundColor Green
     
     Invoke-SearchApi -SearchService $config.primarySearchName -ApiKey $primaryKey -Method "PUT" -Resource "indexers/products-indexer" -Body $indexer | Out-Null
-    Write-Host "  [OK] Created indexer" -ForegroundColor Green
     Write-Host "  [OK] Created indexer" -ForegroundColor Green
 }
 catch {
@@ -155,14 +151,11 @@ Write-Host "Configuring secondary search service: $($config.secondarySearchName)
 try {
     Invoke-SearchApi -SearchService $config.secondarySearchName -ApiKey $secondaryKey -Method "PUT" -Resource "datasources/cosmosdb-datasource" -Body $dataSource | Out-Null
     Write-Host "  [OK] Created data source" -ForegroundColor Green
-    Write-Host "  [OK] Created data source" -ForegroundColor Green
     
     Invoke-SearchApi -SearchService $config.secondarySearchName -ApiKey $secondaryKey -Method "PUT" -Resource "indexes/products-index" -Body $index | Out-Null
     Write-Host "  [OK] Created index" -ForegroundColor Green
-    Write-Host "  [OK] Created index" -ForegroundColor Green
     
     Invoke-SearchApi -SearchService $config.secondarySearchName -ApiKey $secondaryKey -Method "PUT" -Resource "indexers/products-indexer" -Body $indexer | Out-Null
-    Write-Host "  [OK] Created indexer" -ForegroundColor Green
     Write-Host "  [OK] Created indexer" -ForegroundColor Green
 }
 catch {
