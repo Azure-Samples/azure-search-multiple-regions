@@ -1,0 +1,1997 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.0",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "12130568188290243526"
+    }
+  },
+  "parameters": {
+    "projectName": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 10,
+      "metadata": {
+        "description": "Name of the project (3-10 characters) - used as prefix for all resources. Use lowercase letters and numbers only, no spaces or special characters."
+      }
+    },
+    "primaryRegion": {
+      "type": "string",
+      "metadata": {
+        "description": "Primary Azure region for deployment (e.g., westus2, eastus2, westus3)"
+      }
+    },
+    "secondaryRegion": {
+      "type": "string",
+      "metadata": {
+        "description": "Secondary Azure region for deployment (e.g., westus2, eastus2, westus3)"
+      }
+    },
+    "searchSku": {
+      "type": "string",
+      "allowedValues": [
+        "basic",
+        "standard",
+        "standard2",
+        "standard3"
+      ],
+      "metadata": {
+        "description": "Azure Search service SKU"
+      }
+    },
+    "syncMethod": {
+      "type": "string",
+      "defaultValue": "indexer",
+      "allowedValues": [
+        "indexer",
+        "changefeed"
+      ],
+      "metadata": {
+        "description": "Synchronization method: indexer (5-min schedule) or changefeed (real-time)"
+      }
+    },
+    "uniqueSuffix": {
+      "type": "string",
+      "defaultValue": "[uniqueString(resourceGroup().id)]",
+      "metadata": {
+        "description": "Unique suffix for globally unique resource names"
+      }
+    },
+    "deploymentTime": {
+      "type": "string",
+      "defaultValue": "[utcNow()]",
+      "metadata": {
+        "description": "Timestamp used to force deployment scripts to re-run on every deployment"
+      }
+    }
+  },
+  "variables": {
+    "regionAbbreviations": {
+      "eastus": "eus",
+      "eastus2": "eus2",
+      "westus": "wus",
+      "westus2": "wus2",
+      "westus3": "wus3",
+      "centralus": "cus",
+      "northcentralus": "ncus",
+      "westcentralus": "wcus",
+      "northeurope": "neu",
+      "westeurope": "weu",
+      "uksouth": "uks",
+      "ukwest": "ukw",
+      "southeastasia": "sea",
+      "eastasia": "eas",
+      "australiaeast": "aue",
+      "australiasoutheast": "ause",
+      "japaneast": "jpe",
+      "japanwest": "jpw",
+      "koreacentral": "krc",
+      "canadacentral": "cac",
+      "canadaeast": "cae",
+      "brazilsouth": "brs",
+      "southafricanorth": "san",
+      "southindia": "sin",
+      "centralindia": "cin",
+      "westindia": "win",
+      "francecentral": "frc",
+      "germanywestcentral": "gwc",
+      "norwayeast": "nwe",
+      "switzerlandnorth": "chn",
+      "uaenorth": "uan"
+    },
+    "primaryRegionAbbr": "[coalesce(tryGet(variables('regionAbbreviations'), parameters('primaryRegion')), replace(parameters('primaryRegion'), '-', ''))]",
+    "secondaryRegionAbbr": "[coalesce(tryGet(variables('regionAbbreviations'), parameters('secondaryRegion')), replace(parameters('secondaryRegion'), '-', ''))]",
+    "primarySearchName": "[format('{0}-search-{1}-{2}', parameters('projectName'), parameters('primaryRegion'), parameters('uniqueSuffix'))]",
+    "secondarySearchName": "[format('{0}-search-{1}-{2}', parameters('projectName'), parameters('secondaryRegion'), parameters('uniqueSuffix'))]",
+    "primaryFunctionName": "[format('{0}-func-{1}-{2}', parameters('projectName'), parameters('primaryRegion'), parameters('uniqueSuffix'))]",
+    "secondaryFunctionName": "[format('{0}-func-{1}-{2}', parameters('projectName'), parameters('secondaryRegion'), parameters('uniqueSuffix'))]",
+    "primaryStorageName": "[toLower(format('{0}st{1}{2}', parameters('projectName'), variables('primaryRegionAbbr'), substring(parameters('uniqueSuffix'), 0, 4)))]",
+    "secondaryStorageName": "[toLower(format('{0}st{1}{2}', parameters('projectName'), variables('secondaryRegionAbbr'), substring(parameters('uniqueSuffix'), 0, 4)))]",
+    "frontDoorName": "[format('{0}-fd-{1}', parameters('projectName'), parameters('uniqueSuffix'))]"
+  },
+  "resources": {
+    "primarySearch": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "primarySearch",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "searchServiceName": {
+            "value": "[variables('primarySearchName')]"
+          },
+          "location": {
+            "value": "[parameters('primaryRegion')]"
+          },
+          "sku": {
+            "value": "[parameters('searchSku')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "5774605245521148256"
+            }
+          },
+          "parameters": {
+            "searchServiceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Azure AI Search service"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the search service"
+              }
+            },
+            "sku": {
+              "type": "string",
+              "defaultValue": "basic",
+              "allowedValues": [
+                "basic",
+                "standard",
+                "standard2",
+                "standard3"
+              ],
+              "metadata": {
+                "description": "SKU of the search service"
+              }
+            },
+            "replicaCount": {
+              "type": "int",
+              "defaultValue": 1,
+              "minValue": 1,
+              "maxValue": 12,
+              "metadata": {
+                "description": "Replica count"
+              }
+            },
+            "partitionCount": {
+              "type": "int",
+              "defaultValue": 1,
+              "minValue": 1,
+              "maxValue": 12,
+              "metadata": {
+                "description": "Partition count"
+              }
+            }
+          },
+          "resources": {
+            "searchService": {
+              "type": "Microsoft.Search/searchServices",
+              "apiVersion": "2025-05-01",
+              "name": "[parameters('searchServiceName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[parameters('sku')]"
+              },
+              "properties": {
+                "replicaCount": "[parameters('replicaCount')]",
+                "partitionCount": "[parameters('partitionCount')]",
+                "hostingMode": "Default",
+                "publicNetworkAccess": "enabled",
+                "networkRuleSet": {
+                  "ipRules": []
+                },
+                "encryptionWithCmk": {
+                  "enforcement": "Unspecified"
+                },
+                "disableLocalAuth": false,
+                "authOptions": {
+                  "apiKeyOnly": {}
+                }
+              }
+            }
+          },
+          "outputs": {
+            "searchServiceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Search/searchServices', parameters('searchServiceName'))]"
+            },
+            "searchServiceName": {
+              "type": "string",
+              "value": "[parameters('searchServiceName')]"
+            },
+            "searchEndpoint": {
+              "type": "string",
+              "value": "[format('https://{0}.search.windows.net', parameters('searchServiceName'))]"
+            },
+            "adminKey": {
+              "type": "securestring",
+              "value": "[listAdminKeys('searchService', '2025-05-01').primaryKey]"
+            }
+          }
+        }
+      }
+    },
+    "secondarySearch": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "secondarySearch",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "searchServiceName": {
+            "value": "[variables('secondarySearchName')]"
+          },
+          "location": {
+            "value": "[parameters('secondaryRegion')]"
+          },
+          "sku": {
+            "value": "[parameters('searchSku')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "5774605245521148256"
+            }
+          },
+          "parameters": {
+            "searchServiceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Azure AI Search service"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the search service"
+              }
+            },
+            "sku": {
+              "type": "string",
+              "defaultValue": "basic",
+              "allowedValues": [
+                "basic",
+                "standard",
+                "standard2",
+                "standard3"
+              ],
+              "metadata": {
+                "description": "SKU of the search service"
+              }
+            },
+            "replicaCount": {
+              "type": "int",
+              "defaultValue": 1,
+              "minValue": 1,
+              "maxValue": 12,
+              "metadata": {
+                "description": "Replica count"
+              }
+            },
+            "partitionCount": {
+              "type": "int",
+              "defaultValue": 1,
+              "minValue": 1,
+              "maxValue": 12,
+              "metadata": {
+                "description": "Partition count"
+              }
+            }
+          },
+          "resources": {
+            "searchService": {
+              "type": "Microsoft.Search/searchServices",
+              "apiVersion": "2025-05-01",
+              "name": "[parameters('searchServiceName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[parameters('sku')]"
+              },
+              "properties": {
+                "replicaCount": "[parameters('replicaCount')]",
+                "partitionCount": "[parameters('partitionCount')]",
+                "hostingMode": "Default",
+                "publicNetworkAccess": "enabled",
+                "networkRuleSet": {
+                  "ipRules": []
+                },
+                "encryptionWithCmk": {
+                  "enforcement": "Unspecified"
+                },
+                "disableLocalAuth": false,
+                "authOptions": {
+                  "apiKeyOnly": {}
+                }
+              }
+            }
+          },
+          "outputs": {
+            "searchServiceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Search/searchServices', parameters('searchServiceName'))]"
+            },
+            "searchServiceName": {
+              "type": "string",
+              "value": "[parameters('searchServiceName')]"
+            },
+            "searchEndpoint": {
+              "type": "string",
+              "value": "[format('https://{0}.search.windows.net', parameters('searchServiceName'))]"
+            },
+            "adminKey": {
+              "type": "securestring",
+              "value": "[listAdminKeys('searchService', '2025-05-01').primaryKey]"
+            }
+          }
+        }
+      }
+    },
+    "primaryStorage": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "primaryStorage",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "storageAccountName": {
+            "value": "[variables('primaryStorageName')]"
+          },
+          "location": {
+            "value": "[parameters('primaryRegion')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "13100765011901762801"
+            }
+          },
+          "parameters": {
+            "storageAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the storage account"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the storage account"
+              }
+            },
+            "enableStaticWebsite": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable static website hosting"
+              }
+            }
+          },
+          "resources": {
+            "storageAccount": {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2023-01-01",
+              "name": "[parameters('storageAccountName')]",
+              "location": "[parameters('location')]",
+              "kind": "StorageV2",
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "properties": {
+                "supportsHttpsTrafficOnly": true,
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "accessTier": "Hot"
+              }
+            },
+            "blobService": {
+              "condition": "[parameters('enableStaticWebsite')]",
+              "type": "Microsoft.Storage/storageAccounts/blobServices",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
+              "properties": {
+                "cors": {
+                  "corsRules": [
+                    {
+                      "allowedOrigins": [
+                        "*"
+                      ],
+                      "allowedMethods": [
+                        "GET",
+                        "OPTIONS"
+                      ],
+                      "maxAgeInSeconds": 3600,
+                      "exposedHeaders": [
+                        "*"
+                      ],
+                      "allowedHeaders": [
+                        "*"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "storageAccount"
+              ]
+            },
+            "container": {
+              "condition": "[not(parameters('enableStaticWebsite'))]",
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/default/azure-webjobs-hosts', parameters('storageAccountName'))]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "storageAccount"
+              ]
+            }
+          },
+          "outputs": {
+            "storageAccountId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            },
+            "storageAccountName": {
+              "type": "string",
+              "value": "[parameters('storageAccountName')]"
+            },
+            "primaryEndpoints": {
+              "type": "object",
+              "value": "[reference('storageAccount').primaryEndpoints]"
+            },
+            "connectionString": {
+              "type": "securestring",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', parameters('storageAccountName'), environment().suffixes.storage, listKeys('storageAccount', '2023-01-01').keys[0].value)]"
+            },
+            "staticWebsiteUrl": {
+              "type": "string",
+              "value": "[if(parameters('enableStaticWebsite'), reference('storageAccount').primaryEndpoints.web, '')]"
+            }
+          }
+        }
+      }
+    },
+    "secondaryStorage": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "secondaryStorage",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "storageAccountName": {
+            "value": "[variables('secondaryStorageName')]"
+          },
+          "location": {
+            "value": "[parameters('secondaryRegion')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "13100765011901762801"
+            }
+          },
+          "parameters": {
+            "storageAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the storage account"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the storage account"
+              }
+            },
+            "enableStaticWebsite": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable static website hosting"
+              }
+            }
+          },
+          "resources": {
+            "storageAccount": {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2023-01-01",
+              "name": "[parameters('storageAccountName')]",
+              "location": "[parameters('location')]",
+              "kind": "StorageV2",
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "properties": {
+                "supportsHttpsTrafficOnly": true,
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "accessTier": "Hot"
+              }
+            },
+            "blobService": {
+              "condition": "[parameters('enableStaticWebsite')]",
+              "type": "Microsoft.Storage/storageAccounts/blobServices",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
+              "properties": {
+                "cors": {
+                  "corsRules": [
+                    {
+                      "allowedOrigins": [
+                        "*"
+                      ],
+                      "allowedMethods": [
+                        "GET",
+                        "OPTIONS"
+                      ],
+                      "maxAgeInSeconds": 3600,
+                      "exposedHeaders": [
+                        "*"
+                      ],
+                      "allowedHeaders": [
+                        "*"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "storageAccount"
+              ]
+            },
+            "container": {
+              "condition": "[not(parameters('enableStaticWebsite'))]",
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/default/azure-webjobs-hosts', parameters('storageAccountName'))]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "storageAccount"
+              ]
+            }
+          },
+          "outputs": {
+            "storageAccountId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            },
+            "storageAccountName": {
+              "type": "string",
+              "value": "[parameters('storageAccountName')]"
+            },
+            "primaryEndpoints": {
+              "type": "object",
+              "value": "[reference('storageAccount').primaryEndpoints]"
+            },
+            "connectionString": {
+              "type": "securestring",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', parameters('storageAccountName'), environment().suffixes.storage, listKeys('storageAccount', '2023-01-01').keys[0].value)]"
+            },
+            "staticWebsiteUrl": {
+              "type": "string",
+              "value": "[if(parameters('enableStaticWebsite'), reference('storageAccount').primaryEndpoints.web, '')]"
+            }
+          }
+        }
+      }
+    },
+    "primaryFunction": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "primaryFunction",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "functionAppName": {
+            "value": "[variables('primaryFunctionName')]"
+          },
+          "location": {
+            "value": "[parameters('primaryRegion')]"
+          },
+          "storageAccountName": {
+            "value": "[variables('primaryStorageName')]"
+          },
+          "searchServiceName": {
+            "value": "[variables('primarySearchName')]"
+          },
+          "searchServiceKey": {
+            "value": "[listOutputsWithSecureValues('primarySearch', '2025-04-01').adminKey]"
+          },
+          "regionIdentifier": {
+            "value": "[parameters('primaryRegion')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "12588145141102996861"
+            }
+          },
+          "parameters": {
+            "functionAppName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the function app"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the function app"
+              }
+            },
+            "storageAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the storage account for function app"
+              }
+            },
+            "searchServiceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Azure Search service"
+              }
+            },
+            "searchServiceKey": {
+              "type": "securestring",
+              "metadata": {
+                "description": "Admin key for the Azure Search service"
+              }
+            },
+            "regionIdentifier": {
+              "type": "string",
+              "metadata": {
+                "description": "Region identifier for responses"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2022-09-01",
+              "name": "[format('{0}-plan', parameters('functionAppName'))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Y1",
+                "tier": "Dynamic"
+              },
+              "properties": {
+                "reserved": false
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[format('{0}-insights', parameters('functionAppName'))]",
+              "location": "[parameters('location')]",
+              "kind": "web",
+              "properties": {
+                "Application_Type": "web",
+                "Request_Source": "rest",
+                "RetentionInDays": 30,
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2022-09-01",
+              "name": "[parameters('functionAppName')]",
+              "location": "[parameters('location')]",
+              "kind": "functionapp",
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('{0}-plan', parameters('functionAppName')))]",
+                "httpsOnly": true,
+                "siteConfig": {
+                  "appSettings": [
+                    {
+                      "name": "AzureWebJobsStorage",
+                      "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', parameters('storageAccountName'), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-01-01').keys[0].value)]"
+                    },
+                    {
+                      "name": "FUNCTIONS_EXTENSION_VERSION",
+                      "value": "~4"
+                    },
+                    {
+                      "name": "FUNCTIONS_WORKER_RUNTIME",
+                      "value": "dotnet"
+                    },
+                    {
+                      "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                      "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-insights', parameters('functionAppName'))), '2020-02-02').InstrumentationKey]"
+                    },
+                    {
+                      "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                      "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-insights', parameters('functionAppName'))), '2020-02-02').ConnectionString]"
+                    },
+                    {
+                      "name": "SearchServiceName",
+                      "value": "[parameters('searchServiceName')]"
+                    },
+                    {
+                      "name": "SearchServiceEndpoint",
+                      "value": "[format('https://{0}.search.windows.net', parameters('searchServiceName'))]"
+                    },
+                    {
+                      "name": "SearchServiceKey",
+                      "value": "[parameters('searchServiceKey')]"
+                    },
+                    {
+                      "name": "SearchIndexName",
+                      "value": "products-index"
+                    },
+                    {
+                      "name": "RegionIdentifier",
+                      "value": "[parameters('regionIdentifier')]"
+                    }
+                  ],
+                  "cors": {
+                    "allowedOrigins": [
+                      "*"
+                    ],
+                    "supportCredentials": false
+                  },
+                  "ftpsState": "Disabled",
+                  "minTlsVersion": "1.2"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/components', format('{0}-insights', parameters('functionAppName')))]",
+                "[resourceId('Microsoft.Web/serverfarms', format('{0}-plan', parameters('functionAppName')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "functionAppId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+            },
+            "functionAppName": {
+              "type": "string",
+              "value": "[parameters('functionAppName')]"
+            },
+            "functionAppDefaultHostname": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-09-01').defaultHostName]"
+            },
+            "functionAppUrl": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-09-01').defaultHostName)]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "primarySearch",
+        "primaryStorage"
+      ]
+    },
+    "secondaryFunction": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "secondaryFunction",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "functionAppName": {
+            "value": "[variables('secondaryFunctionName')]"
+          },
+          "location": {
+            "value": "[parameters('secondaryRegion')]"
+          },
+          "storageAccountName": {
+            "value": "[variables('secondaryStorageName')]"
+          },
+          "searchServiceName": {
+            "value": "[variables('secondarySearchName')]"
+          },
+          "searchServiceKey": {
+            "value": "[listOutputsWithSecureValues('secondarySearch', '2025-04-01').adminKey]"
+          },
+          "regionIdentifier": {
+            "value": "[parameters('secondaryRegion')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "12588145141102996861"
+            }
+          },
+          "parameters": {
+            "functionAppName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the function app"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the function app"
+              }
+            },
+            "storageAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the storage account for function app"
+              }
+            },
+            "searchServiceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Azure Search service"
+              }
+            },
+            "searchServiceKey": {
+              "type": "securestring",
+              "metadata": {
+                "description": "Admin key for the Azure Search service"
+              }
+            },
+            "regionIdentifier": {
+              "type": "string",
+              "metadata": {
+                "description": "Region identifier for responses"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2022-09-01",
+              "name": "[format('{0}-plan', parameters('functionAppName'))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Y1",
+                "tier": "Dynamic"
+              },
+              "properties": {
+                "reserved": false
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[format('{0}-insights', parameters('functionAppName'))]",
+              "location": "[parameters('location')]",
+              "kind": "web",
+              "properties": {
+                "Application_Type": "web",
+                "Request_Source": "rest",
+                "RetentionInDays": 30,
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2022-09-01",
+              "name": "[parameters('functionAppName')]",
+              "location": "[parameters('location')]",
+              "kind": "functionapp",
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('{0}-plan', parameters('functionAppName')))]",
+                "httpsOnly": true,
+                "siteConfig": {
+                  "appSettings": [
+                    {
+                      "name": "AzureWebJobsStorage",
+                      "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', parameters('storageAccountName'), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-01-01').keys[0].value)]"
+                    },
+                    {
+                      "name": "FUNCTIONS_EXTENSION_VERSION",
+                      "value": "~4"
+                    },
+                    {
+                      "name": "FUNCTIONS_WORKER_RUNTIME",
+                      "value": "dotnet"
+                    },
+                    {
+                      "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                      "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-insights', parameters('functionAppName'))), '2020-02-02').InstrumentationKey]"
+                    },
+                    {
+                      "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                      "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-insights', parameters('functionAppName'))), '2020-02-02').ConnectionString]"
+                    },
+                    {
+                      "name": "SearchServiceName",
+                      "value": "[parameters('searchServiceName')]"
+                    },
+                    {
+                      "name": "SearchServiceEndpoint",
+                      "value": "[format('https://{0}.search.windows.net', parameters('searchServiceName'))]"
+                    },
+                    {
+                      "name": "SearchServiceKey",
+                      "value": "[parameters('searchServiceKey')]"
+                    },
+                    {
+                      "name": "SearchIndexName",
+                      "value": "products-index"
+                    },
+                    {
+                      "name": "RegionIdentifier",
+                      "value": "[parameters('regionIdentifier')]"
+                    }
+                  ],
+                  "cors": {
+                    "allowedOrigins": [
+                      "*"
+                    ],
+                    "supportCredentials": false
+                  },
+                  "ftpsState": "Disabled",
+                  "minTlsVersion": "1.2"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/components', format('{0}-insights', parameters('functionAppName')))]",
+                "[resourceId('Microsoft.Web/serverfarms', format('{0}-plan', parameters('functionAppName')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "functionAppId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+            },
+            "functionAppName": {
+              "type": "string",
+              "value": "[parameters('functionAppName')]"
+            },
+            "functionAppDefaultHostname": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-09-01').defaultHostName]"
+            },
+            "functionAppUrl": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-09-01').defaultHostName)]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "secondarySearch",
+        "secondaryStorage"
+      ]
+    },
+    "frontDoor": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "frontDoor",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "frontDoorName": {
+            "value": "[variables('frontDoorName')]"
+          },
+          "primaryFunctionHostname": {
+            "value": "[format('{0}.azurewebsites.net', variables('primaryFunctionName'))]"
+          },
+          "secondaryFunctionHostname": {
+            "value": "[format('{0}.azurewebsites.net', variables('secondaryFunctionName'))]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "9792898864328283040"
+            }
+          },
+          "parameters": {
+            "frontDoorName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Front Door profile"
+              }
+            },
+            "primaryFunctionHostname": {
+              "type": "string",
+              "metadata": {
+                "description": "Hostname of the primary function app"
+              }
+            },
+            "secondaryFunctionHostname": {
+              "type": "string",
+              "metadata": {
+                "description": "Hostname of the secondary function app"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Cdn/profiles",
+              "apiVersion": "2023-05-01",
+              "name": "[parameters('frontDoorName')]",
+              "location": "global",
+              "sku": {
+                "name": "Standard_AzureFrontDoor"
+              }
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/originGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', parameters('frontDoorName'), 'function-origin-group')]",
+              "properties": {
+                "loadBalancingSettings": {
+                  "sampleSize": 4,
+                  "successfulSamplesRequired": 3,
+                  "additionalLatencyInMilliseconds": 50
+                },
+                "healthProbeSettings": {
+                  "probePath": "/api/health",
+                  "probeRequestType": "GET",
+                  "probeProtocol": "Https",
+                  "probeIntervalInSeconds": 30
+                },
+                "sessionAffinityState": "Disabled"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', parameters('frontDoorName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/originGroups/origins",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}/{2}', parameters('frontDoorName'), 'function-origin-group', 'primary-function')]",
+              "properties": {
+                "hostName": "[parameters('primaryFunctionHostname')]",
+                "httpPort": 80,
+                "httpsPort": 443,
+                "originHostHeader": "[parameters('primaryFunctionHostname')]",
+                "priority": 1,
+                "weight": 1000,
+                "enabledState": "Enabled"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/originGroups', parameters('frontDoorName'), 'function-origin-group')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/originGroups/origins",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}/{2}', parameters('frontDoorName'), 'function-origin-group', 'secondary-function')]",
+              "properties": {
+                "hostName": "[parameters('secondaryFunctionHostname')]",
+                "httpPort": 80,
+                "httpsPort": 443,
+                "originHostHeader": "[parameters('secondaryFunctionHostname')]",
+                "priority": 2,
+                "weight": 1000,
+                "enabledState": "Enabled"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/originGroups', parameters('frontDoorName'), 'function-origin-group')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/afdEndpoints",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', parameters('frontDoorName'), format('{0}-endpoint', parameters('frontDoorName')))]",
+              "location": "global",
+              "properties": {
+                "enabledState": "Enabled"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', parameters('frontDoorName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}/{2}', parameters('frontDoorName'), format('{0}-endpoint', parameters('frontDoorName')), 'api-route')]",
+              "properties": {
+                "originGroup": {
+                  "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', parameters('frontDoorName'), 'function-origin-group')]"
+                },
+                "supportedProtocols": [
+                  "Http",
+                  "Https"
+                ],
+                "patternsToMatch": [
+                  "/api/*"
+                ],
+                "forwardingProtocol": "HttpsOnly",
+                "linkToDefaultDomain": "Enabled",
+                "httpsRedirect": "Enabled"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', parameters('frontDoorName'), format('{0}-endpoint', parameters('frontDoorName')))]",
+                "[resourceId('Microsoft.Cdn/profiles/originGroups', parameters('frontDoorName'), 'function-origin-group')]",
+                "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', parameters('frontDoorName'), 'function-origin-group', 'primary-function')]",
+                "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', parameters('frontDoorName'), 'function-origin-group', 'secondary-function')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "frontDoorEndpointHostname": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Cdn/profiles/afdEndpoints', parameters('frontDoorName'), format('{0}-endpoint', parameters('frontDoorName'))), '2023-05-01').hostName]"
+            },
+            "frontDoorEndpointUrl": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.Cdn/profiles/afdEndpoints', parameters('frontDoorName'), format('{0}-endpoint', parameters('frontDoorName'))), '2023-05-01').hostName)]"
+            },
+            "frontDoorId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Cdn/profiles', parameters('frontDoorName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "primaryFunction",
+        "secondaryFunction"
+      ]
+    },
+    "cosmosDb": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "cosmosDb",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryRegion')]"
+          },
+          "projectName": {
+            "value": "[parameters('projectName')]"
+          },
+          "uniqueSuffix": {
+            "value": "[parameters('uniqueSuffix')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "16232728406408577284"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "projectName": {
+              "type": "string"
+            },
+            "uniqueSuffix": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "cosmosAccountName": "[format('{0}-cosmos-{1}', parameters('projectName'), parameters('uniqueSuffix'))]",
+            "databaseName": "productsdb",
+            "containerName": "products"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.DocumentDB/databaseAccounts",
+              "apiVersion": "2023-04-15",
+              "name": "[variables('cosmosAccountName')]",
+              "location": "[parameters('location')]",
+              "kind": "GlobalDocumentDB",
+              "properties": {
+                "databaseAccountOfferType": "Standard",
+                "consistencyPolicy": {
+                  "defaultConsistencyLevel": "Session"
+                },
+                "locations": [
+                  {
+                    "locationName": "[parameters('location')]",
+                    "failoverPriority": 0,
+                    "isZoneRedundant": false
+                  }
+                ],
+                "capabilities": [
+                  {
+                    "name": "EnableServerless"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
+              "apiVersion": "2023-04-15",
+              "name": "[format('{0}/{1}', variables('cosmosAccountName'), variables('databaseName'))]",
+              "properties": {
+                "resource": {
+                  "id": "[variables('databaseName')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
+              "apiVersion": "2023-04-15",
+              "name": "[format('{0}/{1}/{2}', variables('cosmosAccountName'), variables('databaseName'), variables('containerName'))]",
+              "properties": {
+                "resource": {
+                  "id": "[variables('containerName')]",
+                  "partitionKey": {
+                    "paths": [
+                      "/id"
+                    ],
+                    "kind": "Hash"
+                  },
+                  "indexingPolicy": {
+                    "indexingMode": "consistent",
+                    "automatic": true,
+                    "includedPaths": [
+                      {
+                        "path": "/*"
+                      }
+                    ]
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', variables('cosmosAccountName'), variables('databaseName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "cosmosAccountName": {
+              "type": "string",
+              "value": "[variables('cosmosAccountName')]"
+            },
+            "cosmosDatabaseName": {
+              "type": "string",
+              "value": "[variables('databaseName')]"
+            },
+            "cosmosContainerName": {
+              "type": "string",
+              "value": "[variables('containerName')]"
+            },
+            "cosmosEndpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName')), '2023-04-15').documentEndpoint]"
+            },
+            "cosmosAccountId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName'))]"
+            }
+          }
+        }
+      }
+    },
+    "cosmosDataPopulation": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "cosmosDataPopulation",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryRegion')]"
+          },
+          "cosmosAccountName": {
+            "value": "[reference('cosmosDb').outputs.cosmosAccountName.value]"
+          },
+          "cosmosDatabaseName": {
+            "value": "[reference('cosmosDb').outputs.cosmosDatabaseName.value]"
+          },
+          "cosmosContainerName": {
+            "value": "[reference('cosmosDb').outputs.cosmosContainerName.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "12303890413696604361"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "cosmosAccountName": {
+              "type": "string"
+            },
+            "cosmosDatabaseName": {
+              "type": "string"
+            },
+            "cosmosContainerName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2020-10-01",
+              "name": "cosmosdb-data-population",
+              "location": "[parameters('location')]",
+              "kind": "AzurePowerShell",
+              "properties": {
+                "azPowerShellVersion": "11.0",
+                "retentionInterval": "P1D",
+                "timeout": "PT45M",
+                "arguments": "[format('-CosmosAccountName \"{0}\" -DatabaseName \"{1}\" -ContainerName \"{2}\"', parameters('cosmosAccountName'), parameters('cosmosDatabaseName'), parameters('cosmosContainerName'))]",
+                "environmentVariables": [
+                  {
+                    "name": "COSMOS_KEY",
+                    "secureValue": "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName')), '2023-04-15').primaryMasterKey]"
+                  }
+                ],
+                "scriptContent": "      param(\r\n        [string]$CosmosAccountName,\r\n        [string]$DatabaseName,\r\n        [string]$ContainerName\r\n      )\r\n      \r\n      $cosmosKey = $env:COSMOS_KEY\r\n      $cosmosEndpoint = \"https://${CosmosAccountName}.documents.azure.com:443/\"\r\n      \r\n      Write-Host \"Checking if Cosmos DB already contains sample products...\"\r\n      \r\n      function New-CosmosDbAuthorizationToken {\r\n        param(\r\n          [string]$Verb,\r\n          [string]$ResourceType,\r\n          [string]$ResourceLink,\r\n          [string]$Date,\r\n          [string]$Key\r\n        )\r\n        \r\n        $keyBytes = [System.Convert]::FromBase64String($Key)\r\n        $text = @($Verb.ToLowerInvariant() + \"`n\" + $ResourceType.ToLowerInvariant() + \"`n\" + $ResourceLink + \"`n\" + $Date.ToLowerInvariant() + \"`n\" + \"\" + \"`n\")\r\n        $body = [Text.Encoding]::UTF8.GetBytes($text)\r\n        $hmacsha = New-Object System.Security.Cryptography.HMACSHA256 -ArgumentList @(,$keyBytes)\r\n        $hash = $hmacsha.ComputeHash($body)\r\n        $signature = [System.Convert]::ToBase64String($hash)\r\n        [System.Web.HttpUtility]::UrlEncode(\"type=master&ver=1.0&sig=$signature\")\r\n      }\r\n      \r\n      Add-Type -AssemblyName System.Web\r\n\r\n      # Wait for Cosmos DB data plane to become reachable before any operations\r\n      Write-Host \"Waiting for Cosmos DB data plane to become ready...\"\r\n      $waitResourceLink = \"dbs/$DatabaseName/colls/$ContainerName\"\r\n      $waitElapsed = 0\r\n      $waitMaxSeconds = 300\r\n      $cosmosReady = $false\r\n      while ($waitElapsed -lt $waitMaxSeconds) {\r\n        try {\r\n          $waitDateTime = [DateTime]::UtcNow.ToString(\"r\")\r\n          $waitAuthToken = New-CosmosDbAuthorizationToken -Verb \"GET\" -ResourceType \"docs\" -ResourceLink $waitResourceLink -Date $waitDateTime -Key $cosmosKey\r\n          $waitHeaders = @{\r\n            \"authorization\" = $waitAuthToken\r\n            \"x-ms-date\" = $waitDateTime\r\n            \"x-ms-version\" = \"2018-12-31\"\r\n            \"x-ms-max-item-count\" = \"1\"\r\n          }\r\n          $waitR = Invoke-WebRequest -Uri \"${cosmosEndpoint}${waitResourceLink}/docs\" -Method Get -Headers $waitHeaders -TimeoutSec 10 -SkipHttpErrorCheck\r\n          $waitSc = $waitR.StatusCode\r\n          if ($waitSc -eq 200) {\r\n            Write-Host \"  [OK] Cosmos DB data plane ready (${waitElapsed}s)\" -ForegroundColor Green\r\n            $cosmosReady = $true\r\n            break\r\n          }\r\n          if ($waitSc -eq 401 -or $waitSc -eq 403) {\r\n            throw \"Cosmos DB returned HTTP $waitSc - check access key\"\r\n          }\r\n          Write-Host \"  HTTP $waitSc (${waitElapsed}s)... retrying in 15s\"\r\n        } catch {\r\n          Write-Host \"  Connection error (${waitElapsed}s): $($_.Exception.Message) - retrying in 15s\"\r\n        }\r\n        Start-Sleep -Seconds 15\r\n        $waitElapsed += 15\r\n      }\r\n      if (-not $cosmosReady) {\r\n        throw \"Cosmos DB data plane did not become ready after ${waitMaxSeconds}s\"\r\n      }\r\n\r\n      # Check if container already has documents\r\n      $resourceLink = \"dbs/$DatabaseName/colls/$ContainerName\"\r\n      $dateTime = [DateTime]::UtcNow.ToString(\"r\")\r\n      $authToken = New-CosmosDbAuthorizationToken -Verb \"GET\" -ResourceType \"docs\" -ResourceLink $resourceLink -Date $dateTime -Key $cosmosKey\r\n      \r\n      $headers = @{\r\n        \"authorization\" = $authToken\r\n        \"x-ms-date\" = $dateTime\r\n        \"x-ms-version\" = \"2018-12-31\"\r\n        \"x-ms-max-item-count\" = \"1\"\r\n      }\r\n      \r\n      $uri = \"$cosmosEndpoint$resourceLink/docs\"\r\n      \r\n      try {\r\n        $existingDocs = Invoke-RestMethod -Uri $uri -Method Get -Headers $headers -ContentType \"application/json\"\r\n        if ($existingDocs.Documents -and $existingDocs.Documents.Count -gt 0) {\r\n          Write-Host \"[OK] Container already has $($existingDocs._count) documents. Skipping data population.\"\r\n          exit 0\r\n        }\r\n      }\r\n      catch {\r\n        Write-Host \"Container is empty or checking failed. Proceeding with data population...\"\r\n      }\r\n      \r\n      Write-Host \"Populating Cosmos DB with 50 sample products using REST API...\"\r\n      \r\n      $products = @(\r\n        @{id=\"1\"; name=\"Laptop Pro 15\"; description=\"High-performance laptop with 15-inch display\"; category=\"Electronics\"; price=1299.99},\r\n        @{id=\"2\"; name=\"Wireless Mouse\"; description=\"Ergonomic wireless mouse with precision tracking\"; category=\"Electronics\"; price=29.99},\r\n        @{id=\"3\"; name=\"USB-C Hub\"; description=\"7-in-1 USB-C hub with HDMI and Ethernet\"; category=\"Electronics\"; price=49.99},\r\n        @{id=\"4\"; name=\"Office Chair\"; description=\"Ergonomic office chair with lumbar support\"; category=\"Furniture\"; price=299.99},\r\n        @{id=\"5\"; name=\"Standing Desk\"; description=\"Height-adjustable standing desk\"; category=\"Furniture\"; price=599.99},\r\n        @{id=\"6\"; name=\"Desk Lamp\"; description=\"LED desk lamp with adjustable brightness\"; category=\"Furniture\"; price=39.99},\r\n        @{id=\"7\"; name=\"Bookshelf\"; description=\"5-tier wooden bookshelf\"; category=\"Furniture\"; price=149.99},\r\n        @{id=\"8\"; name=\"Monitor 27in\"; description=\"4K UHD monitor with HDR support\"; category=\"Electronics\"; price=449.99},\r\n        @{id=\"9\"; name=\"Mechanical Keyboard\"; description=\"RGB backlit mechanical keyboard\"; category=\"Electronics\"; price=129.99},\r\n        @{id=\"10\"; name=\"Webcam HD\"; description=\"1080p HD webcam with built-in mic\"; category=\"Electronics\"; price=79.99},\r\n        @{id=\"11\"; name=\"Headphones\"; description=\"Noise-cancelling wireless headphones\"; category=\"Electronics\"; price=199.99},\r\n        @{id=\"12\"; name=\"Tablet 10in\"; description=\"10-inch tablet with stylus support\"; category=\"Electronics\"; price=399.99},\r\n        @{id=\"13\"; name=\"Smartphone\"; description=\"Latest smartphone with 5G support\"; category=\"Electronics\"; price=899.99},\r\n        @{id=\"14\"; name=\"Smartwatch\"; description=\"Fitness tracking smartwatch\"; category=\"Electronics\"; price=249.99},\r\n        @{id=\"15\"; name=\"External SSD 1TB\"; description=\"Portable SSD with USB 3.2\"; category=\"Electronics\"; price=119.99},\r\n        @{id=\"16\"; name=\"Router WiFi 6\"; description=\"Dual-band WiFi 6 router\"; category=\"Electronics\"; price=179.99},\r\n        @{id=\"17\"; name=\"Printer All-in-One\"; description=\"Wireless all-in-one printer\"; category=\"Electronics\"; price=149.99},\r\n        @{id=\"18\"; name=\"Conference Table\"; description=\"8-person conference table\"; category=\"Furniture\"; price=799.99},\r\n        @{id=\"19\"; name=\"File Cabinet\"; description=\"3-drawer locking file cabinet\"; category=\"Furniture\"; price=199.99},\r\n        @{id=\"20\"; name=\"Whiteboard\"; description=\"6x4 ft magnetic whiteboard\"; category=\"Furniture\"; price=129.99},\r\n        @{id=\"21\"; name=\"Coffee Table\"; description=\"Modern glass coffee table\"; category=\"Furniture\"; price=179.99},\r\n        @{id=\"22\"; name=\"Sofa 3-Seater\"; description=\"Comfortable 3-seater sofa\"; category=\"Furniture\"; price=699.99},\r\n        @{id=\"23\"; name=\"Dining Table\"; description=\"6-person dining table with chairs\"; category=\"Furniture\"; price=899.99},\r\n        @{id=\"24\"; name=\"TV Stand\"; description=\"Modern TV stand up to 65in\"; category=\"Furniture\"; price=249.99},\r\n        @{id=\"25\"; name=\"Gaming Console\"; description=\"Next-gen gaming console\"; category=\"Electronics\"; price=499.99},\r\n        @{id=\"26\"; name=\"Graphics Card\"; description=\"High-end graphics card for gaming\"; category=\"Electronics\"; price=799.99},\r\n        @{id=\"27\"; name=\"RAM 32GB Kit\"; description=\"32GB DDR4 RAM kit\"; category=\"Electronics\"; price=159.99},\r\n        @{id=\"28\"; name=\"Power Supply 850W\"; description=\"Modular 850W power supply\"; category=\"Electronics\"; price=129.99},\r\n        @{id=\"29\"; name=\"CPU Cooler\"; description=\"Liquid CPU cooler with RGB\"; category=\"Electronics\"; price=99.99},\r\n        @{id=\"30\"; name=\"Microphone USB\"; description=\"Professional USB microphone\"; category=\"Electronics\"; price=89.99},\r\n        @{id=\"31\"; name=\"Speaker System\"; description=\"5.1 surround sound speaker system\"; category=\"Electronics\"; price=299.99},\r\n        @{id=\"32\"; name=\"Projector 4K\"; description=\"4K home theater projector\"; category=\"Electronics\"; price=1199.99},\r\n        @{id=\"33\"; name=\"Screen Projector\"; description=\"120-inch projector screen\"; category=\"Electronics\"; price=199.99},\r\n        @{id=\"34\"; name=\"Cable Management\"; description=\"Under-desk cable management kit\"; category=\"Furniture\"; price=29.99},\r\n        @{id=\"35\"; name=\"Monitor Arm\"; description=\"Dual monitor arm mount\"; category=\"Furniture\"; price=79.99},\r\n        @{id=\"36\"; name=\"Footrest\"; description=\"Ergonomic footrest\"; category=\"Furniture\"; price=39.99},\r\n        @{id=\"37\"; name=\"Desk Organizer\"; description=\"Bamboo desk organizer\"; category=\"Furniture\"; price=24.99},\r\n        @{id=\"38\"; name=\"Plant Stand\"; description=\"3-tier metal plant stand\"; category=\"Furniture\"; price=49.99},\r\n        @{id=\"39\"; name=\"Storage Ottoman\"; description=\"Storage ottoman with cushion\"; category=\"Furniture\"; price=89.99},\r\n        @{id=\"40\"; name=\"Laptop Stand\"; description=\"Aluminum laptop stand\"; category=\"Electronics\"; price=44.99},\r\n        @{id=\"41\"; name=\"Docking Station\"; description=\"Thunderbolt 4 docking station\"; category=\"Electronics\"; price=299.99},\r\n        @{id=\"42\"; name=\"UPS Battery Backup\"; description=\"1500VA UPS with surge protection\"; category=\"Electronics\"; price=179.99},\r\n        @{id=\"43\"; name=\"Smart Speaker\"; description=\"AI-powered smart speaker\"; category=\"Electronics\"; price=99.99},\r\n        @{id=\"44\"; name=\"Smart Bulbs 4-Pack\"; description=\"Color-changing smart bulbs\"; category=\"Electronics\"; price=59.99},\r\n        @{id=\"45\"; name=\"Security Camera\"; description=\"Indoor security camera with night vision\"; category=\"Electronics\"; price=49.99},\r\n        @{id=\"46\"; name=\"Door Lock Smart\"; description=\"Keyless smart door lock\"; category=\"Electronics\"; price=199.99},\r\n        @{id=\"47\"; name=\"Thermostat Smart\"; description=\"Learning thermostat\"; category=\"Electronics\"; price=249.99},\r\n        @{id=\"48\"; name=\"Air Purifier\"; description=\"HEPA air purifier\"; category=\"Electronics\"; price=199.99},\r\n        @{id=\"49\"; name=\"Humidifier\"; description=\"Ultrasonic cool mist humidifier\"; category=\"Electronics\"; price=79.99},\r\n        @{id=\"50\"; name=\"Desk Converter\"; description=\"Sit-stand desk converter\"; category=\"Furniture\"; price=199.99}\r\n      )\r\n      \r\n      $resourceLink = \"dbs/$DatabaseName/colls/$ContainerName\"\r\n      \r\n      foreach ($product in $products) {\r\n        $dateTime = [DateTime]::UtcNow.ToString(\"r\")\r\n        $authToken = New-CosmosDbAuthorizationToken -Verb \"POST\" -ResourceType \"docs\" -ResourceLink $resourceLink -Date $dateTime -Key $cosmosKey\r\n        \r\n        $headers = @{\r\n          \"authorization\" = $authToken\r\n          \"x-ms-date\" = $dateTime\r\n          \"x-ms-version\" = \"2018-12-31\"\r\n          \"x-ms-documentdb-partitionkey\" = \"[`\"$($product.id)`\"]\"\r\n          \"Content-Type\" = \"application/json\"\r\n        }\r\n        \r\n        $body = $product | ConvertTo-Json -Compress\r\n        $uri = \"$cosmosEndpoint$resourceLink/docs\"\r\n        \r\n        try {\r\n          Write-Host \"Adding product $($product.id): $($product.name)\"\r\n          $response = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body -ContentType \"application/json\"\r\n        }\r\n        catch {\r\n          Write-Warning \"Failed to add product $($product.id): $_\"\r\n        }\r\n      }\r\n      \r\n      Write-Host \"Successfully populated 50 products in Cosmos DB\"\r\n    "
+              }
+            }
+          ],
+          "outputs": {
+            "scriptStatus": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'cosmosdb-data-population'), '2020-10-01').provisioningState]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "cosmosDb"
+      ]
+    },
+    "indexerSync": {
+      "condition": "[equals(parameters('syncMethod'), 'indexer')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "indexerSync",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryRegion')]"
+          },
+          "primarySearchName": {
+            "value": "[variables('primarySearchName')]"
+          },
+          "secondarySearchName": {
+            "value": "[variables('secondarySearchName')]"
+          },
+          "cosmosAccountName": {
+            "value": "[reference('cosmosDb').outputs.cosmosAccountName.value]"
+          },
+          "cosmosDatabaseName": {
+            "value": "[reference('cosmosDb').outputs.cosmosDatabaseName.value]"
+          },
+          "cosmosContainerName": {
+            "value": "[reference('cosmosDb').outputs.cosmosContainerName.value]"
+          },
+          "deploymentTime": {
+            "value": "[parameters('deploymentTime')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "13902544254117611687"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "primarySearchName": {
+              "type": "string"
+            },
+            "secondarySearchName": {
+              "type": "string"
+            },
+            "cosmosAccountName": {
+              "type": "string"
+            },
+            "cosmosDatabaseName": {
+              "type": "string"
+            },
+            "cosmosContainerName": {
+              "type": "string"
+            },
+            "deploymentTime": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2020-10-01",
+              "name": "search-indexer-deployment",
+              "location": "[parameters('location')]",
+              "kind": "AzurePowerShell",
+              "properties": {
+                "azPowerShellVersion": "11.0",
+                "forceUpdateTag": "[parameters('deploymentTime')]",
+                "retentionInterval": "P1D",
+                "timeout": "PT45M",
+                "arguments": "[format('-PrimarySearchName \"{0}\" -SecondarySearchName \"{1}\" -CosmosEndpoint \"{2}\" -CosmosKey \"{3}\" -DatabaseName \"{4}\" -ContainerName \"{5}\"', parameters('primarySearchName'), parameters('secondarySearchName'), reference(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName')), '2023-04-15').documentEndpoint, listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName')), '2023-04-15').primaryMasterKey, parameters('cosmosDatabaseName'), parameters('cosmosContainerName'))]",
+                "environmentVariables": [
+                  {
+                    "name": "PRIMARY_SEARCH_KEY",
+                    "secureValue": "[listAdminKeys(resourceId('Microsoft.Search/searchServices', parameters('primarySearchName')), '2025-05-01').primaryKey]"
+                  },
+                  {
+                    "name": "SECONDARY_SEARCH_KEY",
+                    "secureValue": "[listAdminKeys(resourceId('Microsoft.Search/searchServices', parameters('secondarySearchName')), '2025-05-01').primaryKey]"
+                  }
+                ],
+                "scriptContent": "      param(\r\n        [string]$PrimarySearchName,\r\n        [string]$SecondarySearchName,\r\n        [string]$CosmosEndpoint,\r\n        [string]$CosmosKey,\r\n        [string]$DatabaseName,\r\n        [string]$ContainerName\r\n      )\r\n      \r\n      $primaryKey = $env:PRIMARY_SEARCH_KEY\r\n      $secondaryKey = $env:SECONDARY_SEARCH_KEY\r\n      $apiVersion = \"2025-09-01\"\r\n      \r\n      Write-Host \"Configuring Search indexes and indexers using Data Plane API $apiVersion...\"\r\n      \r\n      function Wait-SearchServiceReady {\r\n        param([string]$ServiceName, [string]$ApiKey, [int]$MaxWaitSeconds = 300)\r\n        $uri = \"https://${ServiceName}.search.windows.net/indexes?api-version=${apiVersion}\"\r\n        $headers = @{ \"api-key\" = $ApiKey }\r\n        $elapsed = 0\r\n        Write-Host \"  Waiting for $ServiceName data plane...\"\r\n        while ($elapsed -lt $MaxWaitSeconds) {\r\n          try {\r\n            $r = Invoke-WebRequest -Uri $uri -Method GET -Headers $headers -TimeoutSec 10 -SkipHttpErrorCheck\r\n            if ($r.StatusCode -eq 200) {\r\n              Write-Host \"  [OK] $ServiceName ready (${elapsed}s)\" -ForegroundColor Green\r\n              return\r\n            }\r\n            Write-Host \"  HTTP $($r.StatusCode) (${elapsed}s)...\" -ForegroundColor Yellow\r\n          } catch {\r\n            Write-Host \"  Connection error (${elapsed}s): $($_.Exception.Message)\" -ForegroundColor Yellow\r\n          }\r\n          Start-Sleep -Seconds 15\r\n          $elapsed += 15\r\n        }\r\n        throw \"$ServiceName not available after ${MaxWaitSeconds}s\"\r\n      }\r\n      \r\n      function Invoke-SearchPost {\r\n        param(\r\n          [string]$SearchService,\r\n          [string]$ApiKey,\r\n          [string]$Collection,\r\n          [string]$Body,\r\n          [int]$MaxRetries = 6\r\n        )\r\n        $baseUri = \"https://${SearchService}.search.windows.net\"\r\n        $headers = @{ \"api-key\" = $ApiKey; \"Content-Type\" = \"application/json\" }\r\n        \r\n        for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {\r\n          $postUri = \"${baseUri}/${Collection}?api-version=${apiVersion}\"\r\n          Write-Host \"  POST ${Collection} (attempt $attempt)...\"\r\n          try {\r\n            $r = Invoke-WebRequest -Uri $postUri -Method POST -Headers $headers -Body $Body -ContentType \"application/json\" -SkipHttpErrorCheck\r\n          } catch {\r\n            Write-Host \"  Connection error: $($_.Exception.Message)\" -ForegroundColor Yellow\r\n            if ($attempt -lt $MaxRetries) { Start-Sleep -Seconds 20; continue }\r\n            throw \"Connection failed after $MaxRetries attempts\"\r\n          }\r\n          \r\n          $sc = $r.StatusCode\r\n          Write-Host \"  Response: HTTP $sc\" -ForegroundColor $(if ($sc -lt 300) { \"Green\" } else { \"Yellow\" })\r\n          \r\n          if ($sc -eq 201 -or $sc -eq 200) {\r\n            return ($r.Content | ConvertFrom-Json -ErrorAction SilentlyContinue)\r\n          }\r\n          \r\n          # Always log the response body on non-success for diagnostics\r\n          Write-Host \"  Response body: $($r.Content)\" -ForegroundColor Red\r\n          \r\n          # 400 Bad Request is never retryable - fail immediately\r\n          if ($sc -eq 400) {\r\n            throw \"HTTP 400 Bad Request on POST ${Collection}: $($r.Content)\"\r\n          }\r\n          \r\n          if ($sc -eq 404 -or $sc -eq 503 -or $sc -eq 409 -or $sc -eq 429) {\r\n            if ($attempt -lt $MaxRetries) {\r\n              Write-Host \"  Retrying in 20s...\" -ForegroundColor Yellow\r\n              Start-Sleep -Seconds 20\r\n              continue\r\n            }\r\n          }\r\n          \r\n          if ($attempt -eq $MaxRetries) {\r\n            throw \"Failed after $MaxRetries attempts: HTTP $sc on POST ${Collection}\"\r\n          }\r\n          \r\n          Start-Sleep -Seconds 20\r\n        }\r\n      }\r\n      \r\n      function Configure-SearchService {\r\n        param(\r\n          [string]$ServiceName,\r\n          [string]$ApiKey,\r\n          [string]$Label\r\n        )\r\n        Write-Host \"\"\r\n        Write-Host \"Configuring $Label search service: $ServiceName\"\r\n        \r\n        Wait-SearchServiceReady -ServiceName $ServiceName -ApiKey $ApiKey\r\n        \r\n        # Clean up any existing resources in reverse dependency order\r\n        # (indexer depends on datasource + index, so must be deleted first)\r\n        $baseUri = \"https://${ServiceName}.search.windows.net\"\r\n        $headers = @{ \"api-key\" = $ApiKey; \"Content-Type\" = \"application/json\" }\r\n        foreach ($resource in @(\"indexers/products-indexer\", \"indexes/products-index\", \"datasources/cosmosdb-datasource\")) {\r\n          $name = $resource.Split(\"/\")[1]\r\n          $collection = $resource.Split(\"/\")[0]\r\n          Write-Host \"  Cleaning up $resource if it exists...\"\r\n          try {\r\n            # Reset indexer change tracking before deletion\r\n            if ($collection -eq \"indexers\") {\r\n              $resetUri = \"${baseUri}/${resource}/reset?api-version=${apiVersion}\"\r\n              $resetR = Invoke-WebRequest -Uri $resetUri -Method POST -Headers $headers -SkipHttpErrorCheck\r\n              Write-Host \"    Reset: HTTP $($resetR.StatusCode)\"\r\n            }\r\n            $delUri = \"${baseUri}/${resource}?api-version=${apiVersion}\"\r\n            $delR = Invoke-WebRequest -Uri $delUri -Method DELETE -Headers $headers -SkipHttpErrorCheck\r\n            Write-Host \"    Delete: HTTP $($delR.StatusCode)\"\r\n          } catch {\r\n            Write-Host \"    Cleanup skipped: $($_.Exception.Message)\" -ForegroundColor Yellow\r\n          }\r\n        }\r\n        Start-Sleep -Seconds 5\r\n        \r\n        # Create data source\r\n        $dsBody = @{\r\n          name = \"cosmosdb-datasource\"\r\n          type = \"cosmosdb\"\r\n          credentials = @{\r\n            connectionString = \"AccountEndpoint=$CosmosEndpoint;AccountKey=$CosmosKey;Database=$DatabaseName\"\r\n          }\r\n          container = @{ name = $ContainerName }\r\n          dataChangeDetectionPolicy = @{\r\n            \"@odata.type\" = \"#Microsoft.Azure.Search.HighWaterMarkChangeDetectionPolicy\"\r\n            highWaterMarkColumnName = \"_ts\"\r\n          }\r\n        } | ConvertTo-Json -Depth 10\r\n        \r\n        Invoke-SearchPost -SearchService $ServiceName -ApiKey $ApiKey -Collection \"datasources\" -Body $dsBody | Out-Null\r\n        Write-Host \"  [OK] Data source created\" -ForegroundColor Green\r\n        \r\n        # Create index\r\n        $idxBody = @{\r\n          name = \"products-index\"\r\n          fields = @(\r\n            @{ name = \"id\"; type = \"Edm.String\"; key = $true; searchable = $false; filterable = $true; sortable = $true; facetable = $false }\r\n            @{ name = \"name\"; type = \"Edm.String\"; searchable = $true; filterable = $true; sortable = $true; facetable = $false }\r\n            @{ name = \"description\"; type = \"Edm.String\"; searchable = $true; filterable = $false; sortable = $false; facetable = $false }\r\n            @{ name = \"category\"; type = \"Edm.String\"; searchable = $true; filterable = $true; sortable = $true; facetable = $true }\r\n            @{ name = \"price\"; type = \"Edm.Double\"; searchable = $false; filterable = $true; sortable = $true; facetable = $true }\r\n          )\r\n        } | ConvertTo-Json -Depth 10\r\n        \r\n        Invoke-SearchPost -SearchService $ServiceName -ApiKey $ApiKey -Collection \"indexes\" -Body $idxBody | Out-Null\r\n        Write-Host \"  [OK] Index created\" -ForegroundColor Green\r\n        \r\n        # Create indexer\r\n        $ixrBody = @{\r\n          name = \"products-indexer\"\r\n          dataSourceName = \"cosmosdb-datasource\"\r\n          targetIndexName = \"products-index\"\r\n          schedule = @{ interval = \"PT5M\" }\r\n          fieldMappings = @()\r\n        } | ConvertTo-Json -Depth 10\r\n        \r\n        Invoke-SearchPost -SearchService $ServiceName -ApiKey $ApiKey -Collection \"indexers\" -Body $ixrBody | Out-Null\r\n        Write-Host \"  [OK] Indexer created\" -ForegroundColor Green\r\n      }\r\n      \r\n      Configure-SearchService -ServiceName $PrimarySearchName -ApiKey $primaryKey -Label \"primary\"\r\n      Configure-SearchService -ServiceName $SecondarySearchName -ApiKey $secondaryKey -Label \"secondary\"\r\n      \r\n      Write-Host \"\"\r\n      Write-Host \"[OK] Successfully configured both search services\" -ForegroundColor Green\r\n      \r\n      $DeploymentScriptOutputs = @{}\r\n      $DeploymentScriptOutputs['status'] = 'completed'\r\n    "
+              }
+            }
+          ],
+          "outputs": {
+            "primaryIndexName": {
+              "type": "string",
+              "value": "products-index"
+            },
+            "secondaryIndexName": {
+              "type": "string",
+              "value": "products-index"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "cosmosDataPopulation",
+        "cosmosDb",
+        "primarySearch",
+        "secondarySearch"
+      ]
+    },
+    "changefeedSync": {
+      "condition": "[equals(parameters('syncMethod'), 'changefeed')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "changefeedSync",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryRegion')]"
+          },
+          "primarySearchName": {
+            "value": "[variables('primarySearchName')]"
+          },
+          "secondarySearchName": {
+            "value": "[variables('secondarySearchName')]"
+          },
+          "primaryFunctionName": {
+            "value": "[variables('primaryFunctionName')]"
+          },
+          "secondaryFunctionName": {
+            "value": "[variables('secondaryFunctionName')]"
+          },
+          "cosmosAccountName": {
+            "value": "[reference('cosmosDb').outputs.cosmosAccountName.value]"
+          },
+          "deploymentTime": {
+            "value": "[parameters('deploymentTime')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "6747929620395274031"
+            }
+          },
+          "parameters": {
+            "primarySearchName": {
+              "type": "string"
+            },
+            "secondarySearchName": {
+              "type": "string"
+            },
+            "primaryFunctionName": {
+              "type": "string"
+            },
+            "secondaryFunctionName": {
+              "type": "string"
+            },
+            "cosmosAccountName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "deploymentTime": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2020-10-01",
+              "name": "search-changefeed-deployment",
+              "location": "[parameters('location')]",
+              "kind": "AzurePowerShell",
+              "properties": {
+                "azPowerShellVersion": "11.0",
+                "forceUpdateTag": "[parameters('deploymentTime')]",
+                "retentionInterval": "P1D",
+                "timeout": "PT45M",
+                "arguments": "[format('-PrimarySearchName \"{0}\" -SecondarySearchName \"{1}\"', parameters('primarySearchName'), parameters('secondarySearchName'))]",
+                "environmentVariables": [
+                  {
+                    "name": "PRIMARY_SEARCH_KEY",
+                    "secureValue": "[listAdminKeys(resourceId('Microsoft.Search/searchServices', parameters('primarySearchName')), '2025-05-01').primaryKey]"
+                  },
+                  {
+                    "name": "SECONDARY_SEARCH_KEY",
+                    "secureValue": "[listAdminKeys(resourceId('Microsoft.Search/searchServices', parameters('secondarySearchName')), '2025-05-01').primaryKey]"
+                  }
+                ],
+                "scriptContent": "      param(\r\n        [string]$PrimarySearchName,\r\n        [string]$SecondarySearchName\r\n      )\r\n\r\n      $primaryKey = $env:PRIMARY_SEARCH_KEY\r\n      $secondaryKey = $env:SECONDARY_SEARCH_KEY\r\n      $apiVersion = \"2025-09-01\"\r\n\r\n      Write-Host \"Configuring Search indexes using Data Plane API $apiVersion...\"\r\n\r\n      function Wait-SearchServiceReady {\r\n        param([string]$ServiceName, [string]$ApiKey, [int]$MaxWaitSeconds = 300)\r\n        $uri = \"https://${ServiceName}.search.windows.net/indexes?api-version=${apiVersion}\"\r\n        $headers = @{ \"api-key\" = $ApiKey }\r\n        $elapsed = 0\r\n        Write-Host \"  Waiting for $ServiceName data plane...\"\r\n        while ($elapsed -lt $MaxWaitSeconds) {\r\n          try {\r\n            $r = Invoke-WebRequest -Uri $uri -Method GET -Headers $headers -TimeoutSec 10 -SkipHttpErrorCheck\r\n            if ($r.StatusCode -eq 200) {\r\n              Write-Host \"  [OK] $ServiceName ready (${elapsed}s)\" -ForegroundColor Green\r\n              return\r\n            }\r\n            Write-Host \"  HTTP $($r.StatusCode) (${elapsed}s)...\" -ForegroundColor Yellow\r\n          } catch {\r\n            Write-Host \"  Connection error (${elapsed}s): $($_.Exception.Message)\" -ForegroundColor Yellow\r\n          }\r\n          Start-Sleep -Seconds 15\r\n          $elapsed += 15\r\n        }\r\n        throw \"$ServiceName not available after ${MaxWaitSeconds}s\"\r\n      }\r\n\r\n      function Configure-SearchService {\r\n        param(\r\n          [string]$ServiceName,\r\n          [string]$ApiKey,\r\n          [string]$Label\r\n        )\r\n        Write-Host \"\"\r\n        Write-Host \"Configuring $Label search service: $ServiceName\"\r\n\r\n        Wait-SearchServiceReady -ServiceName $ServiceName -ApiKey $ApiKey\r\n\r\n        # Clean up existing index if present\r\n        $baseUri = \"https://${ServiceName}.search.windows.net\"\r\n        $headers = @{ \"api-key\" = $ApiKey; \"Content-Type\" = \"application/json\" }\r\n        Write-Host \"  Cleaning up existing index if present...\"\r\n        try {\r\n          $delR = Invoke-WebRequest -Uri \"${baseUri}/indexes/products-index?api-version=${apiVersion}\" -Method DELETE -Headers $headers -SkipHttpErrorCheck\r\n          Write-Host \"    Delete: HTTP $($delR.StatusCode)\"\r\n        } catch {\r\n          Write-Host \"    Cleanup skipped: $($_.Exception.Message)\" -ForegroundColor Yellow\r\n        }\r\n        Start-Sleep -Seconds 5\r\n\r\n        # Create index using POST\r\n        $idxBody = @{\r\n          name = \"products-index\"\r\n          fields = @(\r\n            @{ name = \"id\"; type = \"Edm.String\"; key = $true; searchable = $false; filterable = $true; sortable = $true; facetable = $false }\r\n            @{ name = \"name\"; type = \"Edm.String\"; searchable = $true; filterable = $true; sortable = $true; facetable = $false }\r\n            @{ name = \"description\"; type = \"Edm.String\"; searchable = $true; filterable = $false; sortable = $false; facetable = $false }\r\n            @{ name = \"category\"; type = \"Edm.String\"; searchable = $true; filterable = $true; sortable = $true; facetable = $true }\r\n            @{ name = \"price\"; type = \"Edm.Double\"; searchable = $false; filterable = $true; sortable = $true; facetable = $true }\r\n          )\r\n        } | ConvertTo-Json -Depth 10\r\n\r\n        $postUri = \"https://${ServiceName}.search.windows.net/indexes?api-version=${apiVersion}\"\r\n        for ($attempt = 1; $attempt -le 6; $attempt++) {\r\n          Write-Host \"  POST indexes (attempt $attempt)...\"\r\n          try {\r\n            $r = Invoke-WebRequest -Uri $postUri -Method POST -Headers $headers -Body $idxBody -ContentType \"application/json\" -SkipHttpErrorCheck\r\n          } catch {\r\n            Write-Host \"  Connection error: $($_.Exception.Message)\" -ForegroundColor Yellow\r\n            if ($attempt -lt 6) { Start-Sleep -Seconds 20; continue }\r\n            throw \"Connection failed after 6 attempts\"\r\n          }\r\n          $sc = $r.StatusCode\r\n          Write-Host \"  Response: HTTP $sc\" -ForegroundColor $(if ($sc -lt 300) { \"Green\" } else { \"Yellow\" })\r\n          if ($sc -eq 201 -or $sc -eq 200) {\r\n            Write-Host \"  [OK] Index created\" -ForegroundColor Green\r\n            return\r\n          }\r\n          Write-Host \"  Response body: $($r.Content)\" -ForegroundColor Red\r\n          if ($sc -eq 400) { throw \"HTTP 400 on POST indexes: $($r.Content)\" }\r\n          if ($attempt -lt 6) { Start-Sleep -Seconds 20; continue }\r\n          throw \"Failed after 6 attempts: HTTP $sc on POST indexes\"\r\n        }\r\n      }\r\n\r\n      Configure-SearchService -ServiceName $PrimarySearchName -ApiKey $primaryKey -Label \"primary\"\r\n      Configure-SearchService -ServiceName $SecondarySearchName -ApiKey $secondaryKey -Label \"secondary\"\r\n\r\n      Write-Host \"\"\r\n      Write-Host \"[OK] Successfully configured search indexes\" -ForegroundColor Green\r\n\r\n      $DeploymentScriptOutputs = @{}\r\n      $DeploymentScriptOutputs['status'] = 'completed'\r\n    "
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}', parameters('primaryFunctionName'), 'appsettings')]",
+              "properties": {
+                "CosmosDBConnection": "[format('AccountEndpoint={0};AccountKey={1}', reference(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName')), '2023-04-15').documentEndpoint, listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName')), '2023-04-15').primaryMasterKey)]",
+                "PrimarySearchService": "[parameters('primarySearchName')]",
+                "SecondarySearchService": "[parameters('secondarySearchName')]",
+                "SearchApiKey": "[listAdminKeys(resourceId('Microsoft.Search/searchServices', parameters('primarySearchName')), '2025-05-01').primaryKey]",
+                "FUNCTIONS_EXTENSION_VERSION": "~4",
+                "FUNCTIONS_WORKER_RUNTIME": "dotnet"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'search-changefeed-deployment')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}', parameters('secondaryFunctionName'), 'appsettings')]",
+              "properties": {
+                "CosmosDBConnection": "[format('AccountEndpoint={0};AccountKey={1}', reference(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName')), '2023-04-15').documentEndpoint, listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName')), '2023-04-15').primaryMasterKey)]",
+                "PrimarySearchService": "[parameters('primarySearchName')]",
+                "SecondarySearchService": "[parameters('secondarySearchName')]",
+                "SearchApiKey": "[listAdminKeys(resourceId('Microsoft.Search/searchServices', parameters('primarySearchName')), '2025-05-01').primaryKey]",
+                "FUNCTIONS_EXTENSION_VERSION": "~4",
+                "FUNCTIONS_WORKER_RUNTIME": "dotnet"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'search-changefeed-deployment')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "primaryIndexName": {
+              "type": "string",
+              "value": "products-index"
+            },
+            "secondaryIndexName": {
+              "type": "string",
+              "value": "products-index"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "cosmosDataPopulation",
+        "cosmosDb",
+        "primaryFunction",
+        "primarySearch",
+        "secondaryFunction",
+        "secondarySearch"
+      ]
+    },
+    "primaryFunctionCodeDeploy": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "primaryFunctionCodeDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "functionAppName": {
+            "value": "[variables('primaryFunctionName')]"
+          },
+          "location": {
+            "value": "[parameters('primaryRegion')]"
+          },
+          "resourceGroupName": {
+            "value": "[resourceGroup().name]"
+          },
+          "scriptIdentity": {
+            "value": "primary"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "15826986820060674401"
+            }
+          },
+          "parameters": {
+            "functionAppName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the function app to deploy code to"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the deployment script"
+              }
+            },
+            "resourceGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource group name where function app exists"
+              }
+            },
+            "scriptIdentity": {
+              "type": "string",
+              "metadata": {
+                "description": "Unique identity for the script"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2023-08-01",
+              "name": "[format('deploy-function-code-{0}', parameters('scriptIdentity'))]",
+              "location": "[parameters('location')]",
+              "kind": "AzurePowerShell",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('deploy-identity-{0}', parameters('scriptIdentity'))))]": {}
+                }
+              },
+              "properties": {
+                "azPowerShellVersion": "11.0",
+                "retentionInterval": "PT1H",
+                "timeout": "PT30M",
+                "cleanupPreference": "OnSuccess",
+                "environmentVariables": [
+                  {
+                    "name": "FUNCTION_APP_NAME",
+                    "value": "[parameters('functionAppName')]"
+                  },
+                  {
+                    "name": "RESOURCE_GROUP",
+                    "value": "[parameters('resourceGroupName')]"
+                  }
+                ],
+                "scriptContent": "      $ErrorActionPreference = 'Stop'\r\n      \r\n      $functionAppName = $env:FUNCTION_APP_NAME\r\n      $resourceGroup = $env:RESOURCE_GROUP\r\n      \r\n      Write-Host \"Waiting for function app to be fully ready...\"\r\n      Start-Sleep -Seconds 30\r\n      \r\n      Write-Host \"Creating function code ZIP package...\"\r\n      \r\n      # Set temp directory (works on both Windows and Linux)\r\n      $tempBase = if ($env:TEMP) { $env:TEMP } else { \"/tmp\" }\r\n      \r\n      # Create temporary directory for function files\r\n      $tempDir = New-Item -ItemType Directory -Path \"$tempBase/functions-$(Get-Random)\" -Force\r\n      $zipPath = \"$tempBase/functions-$(Get-Random).zip\"\r\n      \r\n      # Create function structure\r\n      $searchApiDir = New-Item -ItemType Directory -Path \"$tempDir/SearchApi\" -Force\r\n      $healthCheckDir = New-Item -ItemType Directory -Path \"$tempDir/HealthCheck\" -Force\r\n      \r\n      # Create SearchApi function.json\r\n      $searchApiFunctionJson = @{\r\n        bindings = @(\r\n          @{\r\n            authLevel = \"anonymous\"\r\n            type = \"httpTrigger\"\r\n            direction = \"in\"\r\n            name = \"req\"\r\n            methods = @(\"get\", \"post\")\r\n            route = \"search\"\r\n          }\r\n          @{\r\n            type = \"http\"\r\n            direction = \"out\"\r\n            name = \"res\"\r\n          }\r\n        )\r\n      } | ConvertTo-Json -Depth 10\r\n      \r\n      Set-Content -Path \"$searchApiDir\\function.json\" -Value $searchApiFunctionJson\r\n      \r\n      # Create SearchApi run.csx\r\n      $searchApiCode = @'\r\n#r \"Newtonsoft.Json\"\r\n\r\nusing System.Net;\r\nusing Microsoft.AspNetCore.Mvc;\r\nusing Microsoft.Extensions.Primitives;\r\nusing Newtonsoft.Json;\r\nusing System.Text;\r\n\r\npublic static async Task<IActionResult> Run(HttpRequest req, ILogger log)\r\n{\r\n    log.LogInformation(\"Search API function triggered\");\r\n\r\n    string searchServiceEndpoint = Environment.GetEnvironmentVariable(\"SearchServiceEndpoint\");\r\n    string searchServiceKey = Environment.GetEnvironmentVariable(\"SearchServiceKey\");\r\n    string searchIndexName = Environment.GetEnvironmentVariable(\"SearchIndexName\");\r\n    string regionIdentifier = Environment.GetEnvironmentVariable(\"RegionIdentifier\");\r\n\r\n    string query = req.Query[\"q\"];\r\n    string topParam = req.Query[\"top\"];\r\n    string skipParam = req.Query[\"skip\"];\r\n    int top = 50;  // Default to 50 to get all results for client-side pagination\r\n    int skip = 0;\r\n    \r\n    if (!string.IsNullOrEmpty(topParam) && int.TryParse(topParam, out int parsedTop))\r\n    {\r\n        top = parsedTop;\r\n    }\r\n    \r\n    if (!string.IsNullOrEmpty(skipParam) && int.TryParse(skipParam, out int parsedSkip))\r\n    {\r\n        skip = parsedSkip;\r\n    }\r\n\r\n    if (string.IsNullOrEmpty(query))\r\n    {\r\n        return new BadRequestObjectResult(new { \r\n            error = \"Query parameter 'q' is required\",\r\n            example = \"/api/search?q=laptop&top=10&skip=0\"\r\n        });\r\n    }\r\n\r\n    try\r\n    {\r\n        string searchUrl = $\"{searchServiceEndpoint}/indexes/{searchIndexName}/docs/search?api-version=2023-11-01\";\r\n        \r\n        var searchRequest = new\r\n        {\r\n            search = query,\r\n            top = top,\r\n            skip = skip,\r\n            count = true\r\n        };\r\n\r\n        using (var httpClient = new HttpClient())\r\n        {\r\n            httpClient.DefaultRequestHeaders.Add(\"api-key\", searchServiceKey);\r\n            \r\n            var content = new StringContent(\r\n                JsonConvert.SerializeObject(searchRequest),\r\n                Encoding.UTF8,\r\n                \"application/json\"\r\n            );\r\n\r\n            var response = await httpClient.PostAsync(searchUrl, content);\r\n            var responseContent = await response.Content.ReadAsStringAsync();\r\n\r\n            if (response.IsSuccessStatusCode)\r\n            {\r\n                dynamic searchResults = JsonConvert.DeserializeObject(responseContent);\r\n                \r\n                // Add region to each result\r\n                var results = new List<dynamic>();\r\n                foreach (var item in searchResults.value)\r\n                {\r\n                    var resultItem = JsonConvert.DeserializeObject<Dictionary<string, object>>(item.ToString());\r\n                    resultItem[\"region\"] = regionIdentifier;\r\n                    results.Add(resultItem);\r\n                }\r\n                \r\n                var result = new\r\n                {\r\n                    query = query,\r\n                    count = (int)searchResults[\"@odata.count\"],\r\n                    results = results,\r\n                    region = regionIdentifier,\r\n                    timestamp = DateTime.UtcNow\r\n                };\r\n\r\n                log.LogInformation($\"Search completed successfully. Query: {query}, Results: {result.count}, Region: {regionIdentifier}\");\r\n                \r\n                return new OkObjectResult(result);\r\n            }\r\n            else\r\n            {\r\n                log.LogError($\"Search service returned error: {response.StatusCode}\");\r\n                return new ObjectResult(new { \r\n                    error = \"Search service error\",\r\n                    statusCode = (int)response.StatusCode,\r\n                    details = responseContent\r\n                })\r\n                {\r\n                    StatusCode = (int)response.StatusCode\r\n                };\r\n            }\r\n        }\r\n    }\r\n    catch (Exception ex)\r\n    {\r\n        log.LogError($\"Error executing search: {ex.Message}\");\r\n        return new ObjectResult(new { \r\n            error = \"Internal server error\",\r\n            message = ex.Message\r\n        })\r\n        {\r\n            StatusCode = 500\r\n        };\r\n    }\r\n}\r\n'@\r\n      \r\n      Set-Content -Path \"$searchApiDir\\run.csx\" -Value $searchApiCode\r\n      \r\n      # Create SearchApi function.proj\r\n      $searchApiProj = @'\r\n<Project Sdk=\"Microsoft.NET.Sdk\">\r\n  <PropertyGroup>\r\n    <TargetFramework>net6.0</TargetFramework>\r\n  </PropertyGroup>\r\n  <ItemGroup>\r\n    <PackageReference Include=\"Azure.Search.Documents\" Version=\"11.5.1\" />\r\n  </ItemGroup>\r\n</Project>\r\n'@\r\n      \r\n      Set-Content -Path \"$searchApiDir\\function.proj\" -Value $searchApiProj\r\n      \r\n      # Create HealthCheck function.json\r\n      $healthCheckFunctionJson = @{\r\n        bindings = @(\r\n          @{\r\n            authLevel = \"anonymous\"\r\n            type = \"httpTrigger\"\r\n            direction = \"in\"\r\n            name = \"req\"\r\n            methods = @(\"get\")\r\n            route = \"health\"\r\n          }\r\n          @{\r\n            type = \"http\"\r\n            direction = \"out\"\r\n            name = \"res\"\r\n          }\r\n        )\r\n      } | ConvertTo-Json -Depth 10\r\n      \r\n      Set-Content -Path \"$healthCheckDir\\function.json\" -Value $healthCheckFunctionJson\r\n      \r\n      # Create HealthCheck run.csx\r\n      $healthCheckCode = @'\r\n#r \"Newtonsoft.Json\"\r\n\r\nusing System.Net;\r\nusing Microsoft.AspNetCore.Mvc;\r\nusing Newtonsoft.Json;\r\n\r\npublic static async Task<IActionResult> Run(HttpRequest req, ILogger log)\r\n{\r\n    log.LogInformation(\"Health check endpoint called\");\r\n\r\n    string regionIdentifier = Environment.GetEnvironmentVariable(\"RegionIdentifier\");\r\n    string searchServiceEndpoint = Environment.GetEnvironmentVariable(\"SearchServiceEndpoint\");\r\n    string searchServiceKey = Environment.GetEnvironmentVariable(\"SearchServiceKey\");\r\n    string searchIndexName = Environment.GetEnvironmentVariable(\"SearchIndexName\");\r\n\r\n    try\r\n    {\r\n        using (var httpClient = new HttpClient())\r\n        {\r\n            string healthUrl = $\"{searchServiceEndpoint}/indexes/{searchIndexName}?api-version=2023-11-01\";\r\n            httpClient.DefaultRequestHeaders.Add(\"api-key\", searchServiceKey);\r\n            \r\n            var response = await httpClient.GetAsync(healthUrl);\r\n            \r\n            if (response.IsSuccessStatusCode)\r\n            {\r\n                return new OkObjectResult(new\r\n                {\r\n                    status = \"healthy\",\r\n                    region = regionIdentifier,\r\n                    timestamp = DateTime.UtcNow,\r\n                    searchService = \"available\"\r\n                });\r\n            }\r\n            else\r\n            {\r\n                log.LogWarning($\"Search service health check failed: {response.StatusCode}\");\r\n                return new ObjectResult(new\r\n                {\r\n                    status = \"unhealthy\",\r\n                    region = regionIdentifier,\r\n                    timestamp = DateTime.UtcNow,\r\n                    searchService = \"unavailable\"\r\n                })\r\n                {\r\n                    StatusCode = 503\r\n                };\r\n            }\r\n        }\r\n    }\r\n    catch (Exception ex)\r\n    {\r\n        log.LogError($\"Health check error: {ex.Message}\");\r\n        return new ObjectResult(new\r\n        {\r\n            status = \"unhealthy\",\r\n            region = regionIdentifier,\r\n            timestamp = DateTime.UtcNow,\r\n            error = ex.Message\r\n        })\r\n        {\r\n            StatusCode = 503\r\n        };\r\n    }\r\n}\r\n'@\r\n      \r\n      Set-Content -Path \"$healthCheckDir\\run.csx\" -Value $healthCheckCode\r\n      \r\n      # Create host.json\r\n      $hostJson = @{\r\n        version = \"2.0\"\r\n        logging = @{\r\n          applicationInsights = @{\r\n            samplingSettings = @{\r\n              isEnabled = $true\r\n              maxTelemetryItemsPerSecond = 20\r\n            }\r\n          }\r\n        }\r\n        extensionBundle = @{\r\n          id = \"Microsoft.Azure.Functions.ExtensionBundle\"\r\n          version = \"[3.*, 4.0.0)\"\r\n        }\r\n      } | ConvertTo-Json -Depth 10\r\n      \r\n      Set-Content -Path \"$tempDir\\host.json\" -Value $hostJson\r\n      \r\n      Write-Host \"Creating ZIP archive...\"\r\n      Compress-Archive -Path \"$tempDir\\*\" -DestinationPath $zipPath -Force\r\n      \r\n      Write-Host \"Deploying function code to $functionAppName...\"\r\n      \r\n      # Retry logic for deployment using PowerShell cmdlets\r\n      $maxRetries = 3\r\n      $retryCount = 0\r\n      $deployed = $false\r\n      \r\n      while (-not $deployed -and $retryCount -lt $maxRetries) {\r\n        try {\r\n          $retryCount++\r\n          Write-Host \"Deployment attempt $retryCount of $maxRetries...\"\r\n          \r\n          # Wait longer on first attempt for SCM site to be ready\r\n          if ($retryCount -eq 1) {\r\n            Write-Host \"Waiting for SCM site to be fully provisioned...\"\r\n            Start-Sleep -Seconds 60\r\n          }\r\n          \r\n          # Use Publish-AzWebApp cmdlet which handles authentication automatically\r\n          Write-Host \"Deploying ZIP package using Publish-AzWebApp...\"\r\n          Publish-AzWebApp `\r\n            -ResourceGroupName $resourceGroup `\r\n            -Name $functionAppName `\r\n            -ArchivePath $zipPath `\r\n            -Force\r\n          \r\n          Write-Host \"Waiting for deployment to propagate...\"\r\n          Start-Sleep -Seconds 30\r\n          \r\n          # Verify deployment using PowerShell cmdlet\r\n          $webApp = Get-AzWebApp -ResourceGroupName $resourceGroup -Name $functionAppName\r\n          if ($webApp.State -eq \"Running\") {\r\n            Write-Host \"Function app is running, deployment successful!\"\r\n            $deployed = $true\r\n          } else {\r\n            Write-Host \"Function app state: $($webApp.State), retrying...\"\r\n            Start-Sleep -Seconds 15\r\n          }\r\n        }\r\n        catch {\r\n          Write-Host \"Deployment attempt $retryCount failed: $($_.Exception.Message)\"\r\n          if ($retryCount -lt $maxRetries) {\r\n            Write-Host \"Retrying in 15 seconds...\"\r\n            Start-Sleep -Seconds 15\r\n          }\r\n        }\r\n      }\r\n      \r\n      if (-not $deployed) {\r\n        throw \"Failed to deploy function code after $maxRetries attempts\"\r\n      }\r\n      \r\n      # Cleanup\r\n      Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue\r\n      Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue\r\n      \r\n      Write-Host \"Function code deployment complete for $functionAppName\"\r\n    "
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('deploy-identity-{0}', parameters('scriptIdentity')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[format('deploy-identity-{0}', parameters('scriptIdentity'))]",
+              "location": "[parameters('location')]"
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('deploy-identity-{0}', parameters('scriptIdentity'))), parameters('functionAppName'), 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('deploy-identity-{0}', parameters('scriptIdentity'))), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('deploy-identity-{0}', parameters('scriptIdentity')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "deploymentStatus": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', format('deploy-function-code-{0}', parameters('scriptIdentity'))), '2023-08-01').provisioningState]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "changefeedSync",
+        "indexerSync",
+        "primaryFunction"
+      ]
+    },
+    "secondaryFunctionCodeDeploy": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "secondaryFunctionCodeDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "functionAppName": {
+            "value": "[variables('secondaryFunctionName')]"
+          },
+          "location": {
+            "value": "[parameters('secondaryRegion')]"
+          },
+          "resourceGroupName": {
+            "value": "[resourceGroup().name]"
+          },
+          "scriptIdentity": {
+            "value": "secondary"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "15826986820060674401"
+            }
+          },
+          "parameters": {
+            "functionAppName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the function app to deploy code to"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the deployment script"
+              }
+            },
+            "resourceGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource group name where function app exists"
+              }
+            },
+            "scriptIdentity": {
+              "type": "string",
+              "metadata": {
+                "description": "Unique identity for the script"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2023-08-01",
+              "name": "[format('deploy-function-code-{0}', parameters('scriptIdentity'))]",
+              "location": "[parameters('location')]",
+              "kind": "AzurePowerShell",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('deploy-identity-{0}', parameters('scriptIdentity'))))]": {}
+                }
+              },
+              "properties": {
+                "azPowerShellVersion": "11.0",
+                "retentionInterval": "PT1H",
+                "timeout": "PT30M",
+                "cleanupPreference": "OnSuccess",
+                "environmentVariables": [
+                  {
+                    "name": "FUNCTION_APP_NAME",
+                    "value": "[parameters('functionAppName')]"
+                  },
+                  {
+                    "name": "RESOURCE_GROUP",
+                    "value": "[parameters('resourceGroupName')]"
+                  }
+                ],
+                "scriptContent": "      $ErrorActionPreference = 'Stop'\r\n      \r\n      $functionAppName = $env:FUNCTION_APP_NAME\r\n      $resourceGroup = $env:RESOURCE_GROUP\r\n      \r\n      Write-Host \"Waiting for function app to be fully ready...\"\r\n      Start-Sleep -Seconds 30\r\n      \r\n      Write-Host \"Creating function code ZIP package...\"\r\n      \r\n      # Set temp directory (works on both Windows and Linux)\r\n      $tempBase = if ($env:TEMP) { $env:TEMP } else { \"/tmp\" }\r\n      \r\n      # Create temporary directory for function files\r\n      $tempDir = New-Item -ItemType Directory -Path \"$tempBase/functions-$(Get-Random)\" -Force\r\n      $zipPath = \"$tempBase/functions-$(Get-Random).zip\"\r\n      \r\n      # Create function structure\r\n      $searchApiDir = New-Item -ItemType Directory -Path \"$tempDir/SearchApi\" -Force\r\n      $healthCheckDir = New-Item -ItemType Directory -Path \"$tempDir/HealthCheck\" -Force\r\n      \r\n      # Create SearchApi function.json\r\n      $searchApiFunctionJson = @{\r\n        bindings = @(\r\n          @{\r\n            authLevel = \"anonymous\"\r\n            type = \"httpTrigger\"\r\n            direction = \"in\"\r\n            name = \"req\"\r\n            methods = @(\"get\", \"post\")\r\n            route = \"search\"\r\n          }\r\n          @{\r\n            type = \"http\"\r\n            direction = \"out\"\r\n            name = \"res\"\r\n          }\r\n        )\r\n      } | ConvertTo-Json -Depth 10\r\n      \r\n      Set-Content -Path \"$searchApiDir\\function.json\" -Value $searchApiFunctionJson\r\n      \r\n      # Create SearchApi run.csx\r\n      $searchApiCode = @'\r\n#r \"Newtonsoft.Json\"\r\n\r\nusing System.Net;\r\nusing Microsoft.AspNetCore.Mvc;\r\nusing Microsoft.Extensions.Primitives;\r\nusing Newtonsoft.Json;\r\nusing System.Text;\r\n\r\npublic static async Task<IActionResult> Run(HttpRequest req, ILogger log)\r\n{\r\n    log.LogInformation(\"Search API function triggered\");\r\n\r\n    string searchServiceEndpoint = Environment.GetEnvironmentVariable(\"SearchServiceEndpoint\");\r\n    string searchServiceKey = Environment.GetEnvironmentVariable(\"SearchServiceKey\");\r\n    string searchIndexName = Environment.GetEnvironmentVariable(\"SearchIndexName\");\r\n    string regionIdentifier = Environment.GetEnvironmentVariable(\"RegionIdentifier\");\r\n\r\n    string query = req.Query[\"q\"];\r\n    string topParam = req.Query[\"top\"];\r\n    string skipParam = req.Query[\"skip\"];\r\n    int top = 50;  // Default to 50 to get all results for client-side pagination\r\n    int skip = 0;\r\n    \r\n    if (!string.IsNullOrEmpty(topParam) && int.TryParse(topParam, out int parsedTop))\r\n    {\r\n        top = parsedTop;\r\n    }\r\n    \r\n    if (!string.IsNullOrEmpty(skipParam) && int.TryParse(skipParam, out int parsedSkip))\r\n    {\r\n        skip = parsedSkip;\r\n    }\r\n\r\n    if (string.IsNullOrEmpty(query))\r\n    {\r\n        return new BadRequestObjectResult(new { \r\n            error = \"Query parameter 'q' is required\",\r\n            example = \"/api/search?q=laptop&top=10&skip=0\"\r\n        });\r\n    }\r\n\r\n    try\r\n    {\r\n        string searchUrl = $\"{searchServiceEndpoint}/indexes/{searchIndexName}/docs/search?api-version=2023-11-01\";\r\n        \r\n        var searchRequest = new\r\n        {\r\n            search = query,\r\n            top = top,\r\n            skip = skip,\r\n            count = true\r\n        };\r\n\r\n        using (var httpClient = new HttpClient())\r\n        {\r\n            httpClient.DefaultRequestHeaders.Add(\"api-key\", searchServiceKey);\r\n            \r\n            var content = new StringContent(\r\n                JsonConvert.SerializeObject(searchRequest),\r\n                Encoding.UTF8,\r\n                \"application/json\"\r\n            );\r\n\r\n            var response = await httpClient.PostAsync(searchUrl, content);\r\n            var responseContent = await response.Content.ReadAsStringAsync();\r\n\r\n            if (response.IsSuccessStatusCode)\r\n            {\r\n                dynamic searchResults = JsonConvert.DeserializeObject(responseContent);\r\n                \r\n                // Add region to each result\r\n                var results = new List<dynamic>();\r\n                foreach (var item in searchResults.value)\r\n                {\r\n                    var resultItem = JsonConvert.DeserializeObject<Dictionary<string, object>>(item.ToString());\r\n                    resultItem[\"region\"] = regionIdentifier;\r\n                    results.Add(resultItem);\r\n                }\r\n                \r\n                var result = new\r\n                {\r\n                    query = query,\r\n                    count = (int)searchResults[\"@odata.count\"],\r\n                    results = results,\r\n                    region = regionIdentifier,\r\n                    timestamp = DateTime.UtcNow\r\n                };\r\n\r\n                log.LogInformation($\"Search completed successfully. Query: {query}, Results: {result.count}, Region: {regionIdentifier}\");\r\n                \r\n                return new OkObjectResult(result);\r\n            }\r\n            else\r\n            {\r\n                log.LogError($\"Search service returned error: {response.StatusCode}\");\r\n                return new ObjectResult(new { \r\n                    error = \"Search service error\",\r\n                    statusCode = (int)response.StatusCode,\r\n                    details = responseContent\r\n                })\r\n                {\r\n                    StatusCode = (int)response.StatusCode\r\n                };\r\n            }\r\n        }\r\n    }\r\n    catch (Exception ex)\r\n    {\r\n        log.LogError($\"Error executing search: {ex.Message}\");\r\n        return new ObjectResult(new { \r\n            error = \"Internal server error\",\r\n            message = ex.Message\r\n        })\r\n        {\r\n            StatusCode = 500\r\n        };\r\n    }\r\n}\r\n'@\r\n      \r\n      Set-Content -Path \"$searchApiDir\\run.csx\" -Value $searchApiCode\r\n      \r\n      # Create SearchApi function.proj\r\n      $searchApiProj = @'\r\n<Project Sdk=\"Microsoft.NET.Sdk\">\r\n  <PropertyGroup>\r\n    <TargetFramework>net6.0</TargetFramework>\r\n  </PropertyGroup>\r\n  <ItemGroup>\r\n    <PackageReference Include=\"Azure.Search.Documents\" Version=\"11.5.1\" />\r\n  </ItemGroup>\r\n</Project>\r\n'@\r\n      \r\n      Set-Content -Path \"$searchApiDir\\function.proj\" -Value $searchApiProj\r\n      \r\n      # Create HealthCheck function.json\r\n      $healthCheckFunctionJson = @{\r\n        bindings = @(\r\n          @{\r\n            authLevel = \"anonymous\"\r\n            type = \"httpTrigger\"\r\n            direction = \"in\"\r\n            name = \"req\"\r\n            methods = @(\"get\")\r\n            route = \"health\"\r\n          }\r\n          @{\r\n            type = \"http\"\r\n            direction = \"out\"\r\n            name = \"res\"\r\n          }\r\n        )\r\n      } | ConvertTo-Json -Depth 10\r\n      \r\n      Set-Content -Path \"$healthCheckDir\\function.json\" -Value $healthCheckFunctionJson\r\n      \r\n      # Create HealthCheck run.csx\r\n      $healthCheckCode = @'\r\n#r \"Newtonsoft.Json\"\r\n\r\nusing System.Net;\r\nusing Microsoft.AspNetCore.Mvc;\r\nusing Newtonsoft.Json;\r\n\r\npublic static async Task<IActionResult> Run(HttpRequest req, ILogger log)\r\n{\r\n    log.LogInformation(\"Health check endpoint called\");\r\n\r\n    string regionIdentifier = Environment.GetEnvironmentVariable(\"RegionIdentifier\");\r\n    string searchServiceEndpoint = Environment.GetEnvironmentVariable(\"SearchServiceEndpoint\");\r\n    string searchServiceKey = Environment.GetEnvironmentVariable(\"SearchServiceKey\");\r\n    string searchIndexName = Environment.GetEnvironmentVariable(\"SearchIndexName\");\r\n\r\n    try\r\n    {\r\n        using (var httpClient = new HttpClient())\r\n        {\r\n            string healthUrl = $\"{searchServiceEndpoint}/indexes/{searchIndexName}?api-version=2023-11-01\";\r\n            httpClient.DefaultRequestHeaders.Add(\"api-key\", searchServiceKey);\r\n            \r\n            var response = await httpClient.GetAsync(healthUrl);\r\n            \r\n            if (response.IsSuccessStatusCode)\r\n            {\r\n                return new OkObjectResult(new\r\n                {\r\n                    status = \"healthy\",\r\n                    region = regionIdentifier,\r\n                    timestamp = DateTime.UtcNow,\r\n                    searchService = \"available\"\r\n                });\r\n            }\r\n            else\r\n            {\r\n                log.LogWarning($\"Search service health check failed: {response.StatusCode}\");\r\n                return new ObjectResult(new\r\n                {\r\n                    status = \"unhealthy\",\r\n                    region = regionIdentifier,\r\n                    timestamp = DateTime.UtcNow,\r\n                    searchService = \"unavailable\"\r\n                })\r\n                {\r\n                    StatusCode = 503\r\n                };\r\n            }\r\n        }\r\n    }\r\n    catch (Exception ex)\r\n    {\r\n        log.LogError($\"Health check error: {ex.Message}\");\r\n        return new ObjectResult(new\r\n        {\r\n            status = \"unhealthy\",\r\n            region = regionIdentifier,\r\n            timestamp = DateTime.UtcNow,\r\n            error = ex.Message\r\n        })\r\n        {\r\n            StatusCode = 503\r\n        };\r\n    }\r\n}\r\n'@\r\n      \r\n      Set-Content -Path \"$healthCheckDir\\run.csx\" -Value $healthCheckCode\r\n      \r\n      # Create host.json\r\n      $hostJson = @{\r\n        version = \"2.0\"\r\n        logging = @{\r\n          applicationInsights = @{\r\n            samplingSettings = @{\r\n              isEnabled = $true\r\n              maxTelemetryItemsPerSecond = 20\r\n            }\r\n          }\r\n        }\r\n        extensionBundle = @{\r\n          id = \"Microsoft.Azure.Functions.ExtensionBundle\"\r\n          version = \"[3.*, 4.0.0)\"\r\n        }\r\n      } | ConvertTo-Json -Depth 10\r\n      \r\n      Set-Content -Path \"$tempDir\\host.json\" -Value $hostJson\r\n      \r\n      Write-Host \"Creating ZIP archive...\"\r\n      Compress-Archive -Path \"$tempDir\\*\" -DestinationPath $zipPath -Force\r\n      \r\n      Write-Host \"Deploying function code to $functionAppName...\"\r\n      \r\n      # Retry logic for deployment using PowerShell cmdlets\r\n      $maxRetries = 3\r\n      $retryCount = 0\r\n      $deployed = $false\r\n      \r\n      while (-not $deployed -and $retryCount -lt $maxRetries) {\r\n        try {\r\n          $retryCount++\r\n          Write-Host \"Deployment attempt $retryCount of $maxRetries...\"\r\n          \r\n          # Wait longer on first attempt for SCM site to be ready\r\n          if ($retryCount -eq 1) {\r\n            Write-Host \"Waiting for SCM site to be fully provisioned...\"\r\n            Start-Sleep -Seconds 60\r\n          }\r\n          \r\n          # Use Publish-AzWebApp cmdlet which handles authentication automatically\r\n          Write-Host \"Deploying ZIP package using Publish-AzWebApp...\"\r\n          Publish-AzWebApp `\r\n            -ResourceGroupName $resourceGroup `\r\n            -Name $functionAppName `\r\n            -ArchivePath $zipPath `\r\n            -Force\r\n          \r\n          Write-Host \"Waiting for deployment to propagate...\"\r\n          Start-Sleep -Seconds 30\r\n          \r\n          # Verify deployment using PowerShell cmdlet\r\n          $webApp = Get-AzWebApp -ResourceGroupName $resourceGroup -Name $functionAppName\r\n          if ($webApp.State -eq \"Running\") {\r\n            Write-Host \"Function app is running, deployment successful!\"\r\n            $deployed = $true\r\n          } else {\r\n            Write-Host \"Function app state: $($webApp.State), retrying...\"\r\n            Start-Sleep -Seconds 15\r\n          }\r\n        }\r\n        catch {\r\n          Write-Host \"Deployment attempt $retryCount failed: $($_.Exception.Message)\"\r\n          if ($retryCount -lt $maxRetries) {\r\n            Write-Host \"Retrying in 15 seconds...\"\r\n            Start-Sleep -Seconds 15\r\n          }\r\n        }\r\n      }\r\n      \r\n      if (-not $deployed) {\r\n        throw \"Failed to deploy function code after $maxRetries attempts\"\r\n      }\r\n      \r\n      # Cleanup\r\n      Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue\r\n      Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue\r\n      \r\n      Write-Host \"Function code deployment complete for $functionAppName\"\r\n    "
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('deploy-identity-{0}', parameters('scriptIdentity')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[format('deploy-identity-{0}', parameters('scriptIdentity'))]",
+              "location": "[parameters('location')]"
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('deploy-identity-{0}', parameters('scriptIdentity'))), parameters('functionAppName'), 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('deploy-identity-{0}', parameters('scriptIdentity'))), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('deploy-identity-{0}', parameters('scriptIdentity')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "deploymentStatus": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', format('deploy-function-code-{0}', parameters('scriptIdentity'))), '2023-08-01').provisioningState]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "changefeedSync",
+        "indexerSync",
+        "secondaryFunction"
+      ]
+    }
+  },
+  "outputs": {
+    "frontDoorEndpoint": {
+      "type": "string",
+      "value": "[reference('frontDoor').outputs.frontDoorEndpointUrl.value]"
+    },
+    "frontDoorEndpointName": {
+      "type": "string",
+      "value": "[split(reference('frontDoor').outputs.frontDoorEndpointHostname.value, '.')[0]]"
+    },
+    "frontDoorProfileName": {
+      "type": "string",
+      "value": "[variables('frontDoorName')]"
+    },
+    "primarySearchEndpoint": {
+      "type": "string",
+      "value": "[reference('primarySearch').outputs.searchEndpoint.value]"
+    },
+    "secondarySearchEndpoint": {
+      "type": "string",
+      "value": "[reference('secondarySearch').outputs.searchEndpoint.value]"
+    },
+    "primarySearchName": {
+      "type": "string",
+      "value": "[variables('primarySearchName')]"
+    },
+    "secondarySearchName": {
+      "type": "string",
+      "value": "[variables('secondarySearchName')]"
+    },
+    "primaryFunctionUrl": {
+      "type": "string",
+      "value": "[format('https://{0}.azurewebsites.net', variables('primaryFunctionName'))]"
+    },
+    "secondaryFunctionUrl": {
+      "type": "string",
+      "value": "[format('https://{0}.azurewebsites.net', variables('secondaryFunctionName'))]"
+    },
+    "primaryFunctionName": {
+      "type": "string",
+      "value": "[variables('primaryFunctionName')]"
+    },
+    "secondaryFunctionName": {
+      "type": "string",
+      "value": "[variables('secondaryFunctionName')]"
+    },
+    "frontendUrl": {
+      "type": "string",
+      "value": "[format('file:///{0}/frontend/index.html', replace(deployment().name, '\\', '/'))]"
+    },
+    "cosmosAccountName": {
+      "type": "string",
+      "value": "[reference('cosmosDb').outputs.cosmosAccountName.value]"
+    },
+    "syncMethod": {
+      "type": "string",
+      "value": "[parameters('syncMethod')]"
+    }
+  }
+}

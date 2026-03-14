@@ -1,0 +1,15 @@
+{
+  "bindings": [
+    {
+      "type": "cosmosDBTrigger",
+      "name": "documents",
+      "direction": "in",
+      "connectionStringSetting": "CosmosDBConnection",
+      "databaseName": "productsdb",
+      "collectionName": "products",
+      "leaseCollectionName": "leases",
+      "createLeaseCollectionIfNotExists": true,
+      "startFromBeginning": true
+    }
+  ]
+}

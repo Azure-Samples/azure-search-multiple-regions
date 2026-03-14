@@ -1,0 +1,20 @@
+{
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "value": "bcdrtest"
+    },
+    "primaryRegion": {
+      "value": "westus2"
+    },
+    "secondaryRegion": {
+      "value": "westus3"
+    },
+    "searchSku": {
+      "value": "basic"
+    },
+    "syncMethod": {
+      "value": "indexer"
+    }
+  }
+}
