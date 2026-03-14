@@ -109,7 +109,7 @@ Or explicitly specify the indexer method:
 .\deploy.ps1 -ResourceGroupName "demoResourceGroup" -SyncMethod "indexer"
 ```
 
-### Deploy with change feed (Option 2)
+### Run Option 2 - Deploy with change feed
 
 Run the deployment script with change feed synchronization:
 
