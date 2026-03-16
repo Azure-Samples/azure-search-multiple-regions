@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Search BCDR Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .search-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-button {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .search-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .config-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .config-section label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .config-section input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .config-section small {
+            display: block;
+            margin-top: 5px;
+            color: #6c757d;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .status.error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+
+        .status.loading {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+
+        .region-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            background: #4caf50;
+            color: white;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .results {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .results h2 {
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .result-count {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .result-item {
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-left: 4px solid #667eea;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .result-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            border-left-color: #764ba2;
+        }
+
+        .result-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .result-description {
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 10px;
+            font-size: 0.875em;
+            color: #555;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .result-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #f5f6fa;
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid #e8e9f0;
+        }
+
+        .result-meta strong {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .price-value {
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .pagination-button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pagination-button:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .pagination-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .pagination-info {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Azure Search BCDR Test</h1>
+            <p>Multi-Region Business Continuity & Disaster Recovery Demo</p>
+        </div>
+
+        <div class="search-card">
+            <form class="search-form" onsubmit="performSearch(event)">
+                <input 
+                    type="text" 
+                    id="searchQuery" 
+                    class="search-input" 
+                    placeholder="Enter search query (e.g., 'laptop', 'furniture', or '*' for all)" 
+                    value="*"
+                    required
+                />
+                <button type="submit" class="search-button" id="searchButton">
+                    Search
+                </button>
+            </form>
+
+            <div id="statusMessage" class="hidden"></div>
+        </div>
+
+        <div id="resultsContainer" class="hidden results">
+            <h2>
+                Search Results
+                <span class="result-count" id="resultCount"></span>
+            </h2>
+            <div id="resultsList"></div>
+            <div class="pagination" id="pagination">
+                <button class="pagination-button" id="prevButton" onclick="changePage(-1)">&larr; Previous</button>
+                <span class="pagination-info" id="pageInfo"></span>
+                <button class="pagination-button" id="nextButton" onclick="changePage(1)">Next &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Traffic Manager URL - DEPLOYMENT_CONFIG: This line will be updated by deployment script
+        const TRAFFIC_MANAGER_URL = 'https://bcdrtest-fd-tf3dhyfft4xbg-endpoint-a6e0gnexfudpg9ee.b02.azurefd.net';
+        
+        // Pagination state
+        let allResults = [];
+        let currentPage = 1;
+        const resultsPerPage = 10;
+
+        async function performSearch(event) {
+            event.preventDefault();
+
+            const query = document.getElementById('searchQuery').value;
+            const statusMessage = document.getElementById('statusMessage');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const searchButton = document.getElementById('searchButton');
+
+            // Validate Traffic Manager URL
+            if (!TRAFFIC_MANAGER_URL || TRAFFIC_MANAGER_URL === '{{TRAFFIC_MANAGER_URL}}') {
+                showStatus('Traffic Manager URL not configured. Please run the deployment configuration command.', 'error');
+                return;
+            }
+
+            // Show loading state
+            searchButton.disabled = true;
+            searchButton.innerHTML = '<span class="spinner"></span> Searching...';
+            showStatus('Searching...', 'loading');
+            resultsContainer.classList.add('hidden');
+
+            try {
+                // Construct the API URL - request up to 50 results for client-side pagination
+                const baseUrl = TRAFFIC_MANAGER_URL.replace(/\/$/, '');
+                const apiUrl = `${baseUrl}/api/search?q=${encodeURIComponent(query)}&top=50`;
+
+                console.log('Calling API:', apiUrl);
+
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Display results
+                displayResults(data);
+
+                // Show success status
+                showStatus(
+                    `<span>Search completed successfully!</span>
+                     <span class="region-badge">${data.region || 'Unknown Region'}</span>`,
+                    'success'
+                );
+
+            } catch (error) {
+                console.error('Search error:', error);
+                showStatus(`Error: ${error.message}. Please check the deployment and ensure services are running.`, 'error');
+            } finally {
+                searchButton.disabled = false;
+                searchButton.textContent = 'Search';
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.innerHTML = message;
+            statusMessage.className = `status ${type}`;
+            statusMessage.classList.remove('hidden');
+        }
+
+        function displayResults(data) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const resultCount = document.getElementById('resultCount');
+
+            if (!data.results || data.results.length === 0) {
+                document.getElementById('resultsList').innerHTML = '<div class="no-results">No results found. Try a different search query.</div>';
+                resultCount.textContent = '(0 results)';
+                document.getElementById('pagination').style.display = 'none';
+            } else {
+                allResults = data.results;
+                currentPage = 1;
+                resultCount.textContent = `(${data.count} result${data.count !== 1 ? 's' : ''})`;
+                
+                renderPage();
+            }
+
+            resultsContainer.classList.remove('hidden');
+        }
+        
+        function renderPage() {
+            const resultsList = document.getElementById('resultsList');
+            const startIndex = (currentPage - 1) * resultsPerPage;
+            const endIndex = startIndex + resultsPerPage;
+            const pageResults = allResults.slice(startIndex, endIndex);
+            const totalPages = Math.ceil(allResults.length / resultsPerPage);
+            
+            resultsList.innerHTML = pageResults.map(item => `
+                <div class="result-item">
+                    <div class="result-title">${escapeHtml(item.name)}</div>
+                    <div class="result-description">${escapeHtml(item.description)}</div>
+                    <div class="result-meta">
+                        <span><strong>Category:</strong> ${escapeHtml(item.category)}</span>
+                        <span><strong>Price:</strong> <span class="price-value">$${item.price.toFixed(2)}</span></span>
+                        <span><strong>Region:</strong> ${escapeHtml(item.region)}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Update pagination controls
+            document.getElementById('prevButton').disabled = currentPage === 1;
+            document.getElementById('nextButton').disabled = currentPage === totalPages;
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('pagination').style.display = totalPages > 1 ? 'flex' : 'none';
+            
+            // Scroll to top of results
+            document.getElementById('resultsContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function changePage(direction) {
+            const totalPages = Math.ceil(allResults.length / resultsPerPage);
+            const newPage = currentPage + direction;
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderPage();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Perform search on page load if URL is configured
+        window.addEventListener('load', function() {
+            if (TRAFFIC_MANAGER_URL && TRAFFIC_MANAGER_URL !== '{{TRAFFIC_MANAGER_URL}}') {
+                // Auto-search after 1 second
+                setTimeout(() => {
+                    performSearch(new Event('submit'));
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
